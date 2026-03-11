@@ -15,6 +15,13 @@ video-downloader-front/.angular/
 *.iml
 .vscode/
 
+# Env files
+*.env
+.env.*
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log

@@ -16,13 +16,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(VideoNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleVideoNotFound(VideoNotFoundException ex) {
+        log.info("Video not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDto(404, ex.getMessage()));
     }
 
     @ExceptionHandler(DownloadException.class)
     public ResponseEntity<ErrorResponseDto> handleDownloadException(DownloadException ex) {
-        log.error("Download error: {}", ex.getMessage(), ex);
+        log.warn("Download error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponseDto(500, ex.getMessage()));
     }

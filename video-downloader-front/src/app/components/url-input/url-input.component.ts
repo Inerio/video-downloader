@@ -17,26 +17,24 @@ import { detectPlatform } from '../../models/platform.model';
           type="url"
           [(ngModel)]="url"
           (ngModelChange)="onUrlChange($event)"
-          (paste)="onPaste($event)"
+          (paste)="onPaste()"
           (keydown.enter)="onSubmit()"
           placeholder="Collez le lien de votre vidéo ici..."
           class="url-field"
           [disabled]="loading"
         />
-        <button
-          class="submit-btn"
-          (click)="onSubmit()"
-          [disabled]="!url.trim() || loading"
-        >
-          @if (loading) {
+        @if (loading) {
+          <div class="loading-indicator">
             <span class="spinner"></span>
-          } @else {
+          </div>
+        } @else {
+          <button class="paste-btn" (click)="onPasteFromClipboard()" title="Coller depuis le presse-papier">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
             </svg>
-            Analyser
-          }
-        </button>
+            Coller
+          </button>
+        }
       </div>
       @if (errorMessage) {
         <p class="error">{{ errorMessage }}</p>
@@ -88,7 +86,7 @@ import { detectPlatform } from '../../models/platform.model';
       }
     }
 
-    .submit-btn {
+    .paste-btn {
       display: flex;
       align-items: center;
       gap: 0.4rem;
@@ -103,26 +101,28 @@ import { detectPlatform } from '../../models/platform.model';
       white-space: nowrap;
       transition: opacity 0.2s, transform 0.1s;
 
-      &:hover:not(:disabled) {
+      &:hover {
         opacity: 0.9;
         transform: translateY(-1px);
       }
 
-      &:active:not(:disabled) {
+      &:active {
         transform: translateY(0);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
     }
 
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.25rem;
+    }
+
     .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid rgba(99, 102, 241, 0.3);
+      border-top-color: #6366f1;
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
     }
@@ -151,7 +151,7 @@ export class UrlInputComponent {
     this.detectedPlatform = value.trim() ? detectPlatform(value.trim()) : '';
   }
 
-  onPaste(event: ClipboardEvent) {
+  onPaste() {
     setTimeout(() => {
       if (this.url.trim()) {
         this.onUrlChange(this.url);
@@ -160,9 +160,22 @@ export class UrlInputComponent {
     }, 0);
   }
 
+  async onPasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        this.url = text.trim();
+        this.onUrlChange(this.url);
+        this.onSubmit();
+      }
+    } catch {
+      this.errorMessage = "Impossible d'accéder au presse-papier. Collez avec Ctrl+V.";
+    }
+  }
+
   onSubmit() {
     const trimmed = this.url.trim();
-    if (!trimmed) return;
+    if (!trimmed || this.loading) return;
 
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       this.errorMessage = "L'URL doit commencer par http:// ou https://";

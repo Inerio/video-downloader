@@ -6,36 +6,56 @@ import { VideoFormat } from '../../models/video-info.model';
   standalone: true,
   template: `
     <div class="formats">
-      <h3>Choisir la qualité</h3>
-      <div class="format-list">
-        @for (format of filteredFormats; track format.formatId) {
-          <button
-            class="format-item"
-            [class.best]="format.formatId === 'best'"
-            (click)="selectFormat.emit(format.formatId)"
-          >
-            <div class="format-info">
-              <span class="format-quality">{{ format.quality }}</span>
-              <span class="format-ext">.{{ format.extension }}</span>
-              @if (format.filesize) {
-                <span class="format-size">{{ formatFileSize(format.filesize) }}</span>
-              }
-            </div>
-            <div class="format-tags">
-              @if (format.hasVideo && format.hasAudio) {
-                <span class="tag tag-full">Video + Audio</span>
-              } @else if (format.hasVideo) {
-                <span class="tag tag-video">Video only</span>
-              } @else if (format.hasAudio) {
-                <span class="tag tag-audio">Audio only</span>
-              }
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon">
+      <!-- Best quality main button -->
+      @if (bestFormat) {
+        <button class="best-btn" (click)="selectFormat.emit(bestFormat.formatId)">
+          <div class="best-left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
             </svg>
-          </button>
+            <span>Télécharger — Meilleure qualité</span>
+          </div>
+          <span class="best-tag">Recommandé</span>
+        </button>
+      }
+
+      <!-- Expandable other formats -->
+      @if (otherFormats.length > 0) {
+        <button class="toggle-btn" (click)="expanded = !expanded">
+          <span>{{ expanded ? 'Masquer' : 'Voir' }} les autres formats ({{ otherFormats.length }})</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.rotated]="expanded">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+
+        @if (expanded) {
+          <div class="format-list">
+            @for (format of otherFormats; track format.formatId) {
+              <button class="format-item" (click)="selectFormat.emit(format.formatId)">
+                <div class="format-info">
+                  <span class="format-quality">{{ format.quality }}</span>
+                  <span class="format-ext">.{{ format.extension }}</span>
+                  @if (format.filesize) {
+                    <span class="format-size">{{ formatFileSize(format.filesize) }}</span>
+                  }
+                </div>
+                <div class="format-tags">
+                  @if (format.hasVideo && format.hasAudio) {
+                    <span class="tag tag-full">Video + Audio</span>
+                  } @else if (format.hasVideo) {
+                    <span class="tag tag-video">Video only</span>
+                  } @else if (format.hasAudio) {
+                    <span class="tag tag-audio">Audio only</span>
+                  }
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+                </svg>
+              </button>
+            }
+          </div>
         }
-      </div>
+      }
     </div>
   `,
   styles: [`
@@ -43,19 +63,91 @@ import { VideoFormat } from '../../models/video-info.model';
       margin-top: 1.5rem;
     }
 
-    h3 {
-      color: #e5e5e5;
+    .best-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      font: inherit;
       font-size: 1rem;
-      margin: 0 0 0.75rem;
+      font-weight: 600;
+      transition: opacity 0.2s, transform 0.1s;
+
+      &:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    .best-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .best-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.6rem;
+      background: none;
+      border: 1px solid #2d2d3f;
+      border-radius: 8px;
+      color: #9ca3af;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+      transition: color 0.2s, border-color 0.2s;
+
+      &:hover {
+        color: #e5e5e5;
+        border-color: #6366f1;
+      }
+
+      svg {
+        transition: transform 0.2s;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
     }
 
     .format-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      max-height: 320px;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      max-height: 280px;
       overflow-y: auto;
       padding-right: 0.25rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .format-item {
@@ -65,21 +157,17 @@ import { VideoFormat } from '../../models/video-info.model';
       background: #252536;
       border: 1px solid #2d2d3f;
       border-radius: 10px;
-      padding: 0.75rem 1rem;
+      padding: 0.6rem 0.85rem;
       color: #e5e5e5;
       cursor: pointer;
       transition: all 0.15s;
       text-align: left;
       font: inherit;
+      font-size: 0.9rem;
 
       &:hover {
         border-color: #6366f1;
         background: #2a2a40;
-      }
-
-      &.best {
-        border-color: #6366f1;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
       }
     }
 
@@ -90,19 +178,9 @@ import { VideoFormat } from '../../models/video-info.model';
       gap: 0.5rem;
     }
 
-    .format-quality {
-      font-weight: 600;
-    }
-
-    .format-ext {
-      color: #9ca3af;
-      font-size: 0.8rem;
-    }
-
-    .format-size {
-      color: #6b7280;
-      font-size: 0.8rem;
-    }
+    .format-quality { font-weight: 600; }
+    .format-ext { color: #9ca3af; font-size: 0.8rem; }
+    .format-size { color: #6b7280; font-size: 0.8rem; }
 
     .format-tags {
       display: flex;
@@ -130,9 +208,15 @@ export class FormatSelectorComponent {
   @Input() formats: VideoFormat[] = [];
   @Output() selectFormat = new EventEmitter<string>();
 
-  get filteredFormats(): VideoFormat[] {
+  expanded = false;
+
+  get bestFormat(): VideoFormat | undefined {
+    return this.formats.find(f => f.formatId === 'best');
+  }
+
+  get otherFormats(): VideoFormat[] {
     return this.formats.filter(f =>
-      f.formatId === 'best' || f.hasAudio || f.hasVideo
+      f.formatId !== 'best' && (f.hasAudio || f.hasVideo)
     );
   }
 

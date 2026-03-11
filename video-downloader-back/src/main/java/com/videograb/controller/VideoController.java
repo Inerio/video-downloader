@@ -34,12 +34,23 @@ public class VideoController {
     @GetMapping("/download")
     public ResponseEntity<Resource> downloadVideo(
             @RequestParam String url,
-            @RequestParam(defaultValue = "best") String formatId) throws IOException {
+            @RequestParam(defaultValue = "best") String formatId,
+            @RequestParam(required = false) String filename) throws IOException {
 
         Path filePath = videoService.download(url, formatId);
         Resource resource = new FileSystemResource(filePath);
 
-        String filename = filePath.getFileName().toString();
+        // Use custom filename if provided, otherwise use the actual file name
+        String extension = getExtension(filePath.getFileName().toString());
+        String downloadName;
+        if (filename != null && !filename.isBlank()) {
+            // Sanitize and append original extension
+            String sanitized = filename.replaceAll("[<>:\"/\\\\|?*]", "").trim();
+            downloadName = sanitized + "." + extension;
+        } else {
+            downloadName = filePath.getFileName().toString();
+        }
+
         String contentType = Files.probeContentType(filePath);
         if (contentType == null) {
             contentType = "application/octet-stream";
@@ -47,8 +58,13 @@ public class VideoController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
                 .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(Files.size(filePath)))
                 .body(resource);
+    }
+
+    private String getExtension(String filename) {
+        int dot = filename.lastIndexOf('.');
+        return dot >= 0 ? filename.substring(dot + 1) : "mp4";
     }
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ng:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}

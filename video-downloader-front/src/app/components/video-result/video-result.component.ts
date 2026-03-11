@@ -1,4 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { VideoInfo } from '../../models/video-info.model';
 import { VideoService } from '../../services/video.service';
 import { PlatformBadgeComponent } from '../platform-badge/platform-badge.component';
@@ -7,7 +8,7 @@ import { FormatSelectorComponent } from '../format-selector/format-selector.comp
 @Component({
   selector: 'app-video-result',
   standalone: true,
-  imports: [PlatformBadgeComponent, FormatSelectorComponent],
+  imports: [FormsModule, PlatformBadgeComponent, FormatSelectorComponent],
   template: `
     <div class="result-card">
       <div class="video-preview">
@@ -23,6 +24,19 @@ import { FormatSelectorComponent } from '../format-selector/format-selector.comp
             }
             <span class="duration">{{ videoInfo.duration }}</span>
           </div>
+        </div>
+      </div>
+
+      <div class="filename-section">
+        <label for="filename">Nom du fichier</label>
+        <div class="filename-input-row">
+          <input
+            id="filename"
+            type="text"
+            [(ngModel)]="filename"
+            class="filename-field"
+            placeholder="Nom du fichier..."
+          />
         </div>
       </div>
 
@@ -51,14 +65,8 @@ import { FormatSelectorComponent } from '../format-selector/format-selector.comp
     }
 
     @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .video-preview {
@@ -99,6 +107,39 @@ import { FormatSelectorComponent } from '../format-selector/format-selector.comp
       font-size: 0.85rem;
     }
 
+    .filename-section {
+      margin-top: 1.25rem;
+
+      label {
+        display: block;
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+      }
+    }
+
+    .filename-input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .filename-field {
+      flex: 1;
+      background: #252536;
+      border: 1px solid #2d2d3f;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      color: #e5e5e5;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: #6366f1;
+      }
+    }
+
     .download-status {
       display: flex;
       align-items: center;
@@ -137,22 +178,28 @@ import { FormatSelectorComponent } from '../format-selector/format-selector.comp
     }
   `]
 })
-export class VideoResultComponent {
+export class VideoResultComponent implements OnChanges {
   @Input() videoInfo!: VideoInfo;
   @Input() videoUrl!: string;
 
+  filename = '';
   downloading = false;
 
   constructor(private videoService: VideoService) {}
 
+  ngOnChanges() {
+    if (this.videoInfo) {
+      this.filename = this.sanitizeFilename(this.videoInfo.title);
+    }
+  }
+
   onDownload(formatId: string) {
     this.downloading = true;
-    const downloadUrl = this.videoService.getDownloadUrl(this.videoUrl, formatId);
+    const downloadUrl = this.videoService.getDownloadUrl(this.videoUrl, formatId, this.filename);
 
-    // Trigger download via hidden link
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = '';
+    link.download = this.filename || '';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -160,5 +207,9 @@ export class VideoResultComponent {
     setTimeout(() => {
       this.downloading = false;
     }, 3000);
+  }
+
+  private sanitizeFilename(name: string): string {
+    return name.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim();
   }
 }

@@ -67,14 +67,8 @@ public class YtDlpService {
             }
 
             if (process.exitValue() != 0) {
-                log.error("yt-dlp error: {}", errorOutput);
-                if (errorOutput.contains("Video unavailable") || errorOutput.contains("not available")) {
-                    throw new VideoNotFoundException("Vidéo introuvable ou indisponible");
-                }
-                if (errorOutput.contains("Private video") || errorOutput.contains("Sign in")) {
-                    throw new VideoNotFoundException("Cette vidéo est privée ou nécessite une connexion");
-                }
-                throw new DownloadException("Impossible d'extraire les informations de la vidéo");
+                log.warn("yt-dlp failed for URL {}: {}", url, errorOutput);
+                throw mapYtDlpError(errorOutput);
             }
 
             JsonNode json = objectMapper.readTree(output);
@@ -146,6 +140,61 @@ public class YtDlpService {
         } catch (Exception e) {
             throw new DownloadException("Erreur lors du téléchargement", e);
         }
+    }
+
+    private RuntimeException mapYtDlpError(String errorOutput) {
+        String err = errorOutput.toLowerCase();
+
+        // Video not available / removed / deleted
+        if (err.contains("video unavailable") || err.contains("not available")
+                || err.contains("has been removed") || err.contains("deleted")) {
+            return new VideoNotFoundException("Cette vidéo n'est plus disponible");
+        }
+
+        // Private / login required
+        if (err.contains("private video") || err.contains("sign in") || err.contains("login required")
+                || err.contains("members only") || err.contains("requires authentication")) {
+            return new VideoNotFoundException("Cette vidéo est privée ou nécessite une connexion");
+        }
+
+        // No video found in the content (e.g. tweet without video)
+        if (err.contains("no video could be found") || err.contains("does not contain")) {
+            return new VideoNotFoundException("Aucune vidéo trouvée dans ce lien");
+        }
+
+        // HTTP 404
+        if (err.contains("http error 404") || err.contains("not found")) {
+            return new VideoNotFoundException("Cette vidéo n'existe pas ou a été supprimée");
+        }
+
+        // HTTP 403 / Blocked
+        if (err.contains("http error 403") || err.contains("blocked") || err.contains("access denied")
+                || err.contains("forbidden")) {
+            return new DownloadException("L'accès à cette vidéo est bloqué par la plateforme");
+        }
+
+        // Rate limited
+        if (err.contains("http error 429") || err.contains("too many requests") || err.contains("rate limit")) {
+            return new DownloadException("Trop de requêtes. Réessayez dans quelques minutes");
+        }
+
+        // Unsupported URL
+        if (err.contains("unsupported url") || err.contains("no suitable")) {
+            return new DownloadException("Cette URL n'est pas supportée");
+        }
+
+        // Extractor issue (e.g. "Unable to extract title; please report")
+        if (err.contains("unable to extract") || err.contains("please report")) {
+            return new DownloadException("Extraction temporairement impossible sur cette plateforme. Essayez de mettre à jour yt-dlp");
+        }
+
+        // Geo-restricted
+        if (err.contains("geo") || err.contains("not available in your country") || err.contains("region")) {
+            return new DownloadException("Cette vidéo n'est pas disponible dans votre région");
+        }
+
+        // Default
+        return new DownloadException("Impossible d'extraire les informations de la vidéo");
     }
 
     private VideoInfoResponseDto parseVideoInfo(JsonNode json, String url) {
