@@ -1,0 +1,20 @@
+# Backend
+video-downloader-back/target/
+video-downloader-back/.classpath
+video-downloader-back/.project
+video-downloader-back/.factorypath
+video-downloader-back/.settings/
+
+# Frontend
+video-downloader-front/node_modules/
+video-downloader-front/dist/
+video-downloader-front/.angular/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
