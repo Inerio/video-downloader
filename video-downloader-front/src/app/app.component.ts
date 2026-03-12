@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, AfterViewChecked } from '@angular/core';
 import { HeaderComponent } from './components/header/header.component';
 import { UrlInputComponent } from './components/url-input/url-input.component';
 import { VideoResultComponent } from './components/video-result/video-result.component';
@@ -30,7 +30,7 @@ import { Subscription } from 'rxjs';
         }
 
         @if (videoInfo) {
-          <app-video-result [videoInfo]="videoInfo" [videoUrl]="currentUrl" />
+          <app-video-result #videoResult [videoInfo]="videoInfo" [videoUrl]="currentUrl" />
         }
       </main>
 
@@ -78,11 +78,12 @@ import { Subscription } from 'rxjs';
     }
   `]
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
   videoInfo: VideoInfo | null = null;
   currentUrl = '';
   error = '';
   loading = false;
+  private shouldScroll = false;
 
   get hasContent(): boolean {
     return !!(this.videoInfo || this.loading || this.error);
@@ -102,6 +103,16 @@ export class AppComponent implements OnInit, OnDestroy {
     document.title = this.t.t()('meta.title');
   }
 
+  ngAfterViewChecked() {
+    if (this.shouldScroll) {
+      this.shouldScroll = false;
+      const el = document.querySelector('app-video-result');
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
+    }
+  }
+
   ngOnDestroy() {
     this.analyzeSub?.unsubscribe();
   }
@@ -117,6 +128,7 @@ export class AppComponent implements OnInit, OnDestroy {
       next: (info) => {
         this.videoInfo = info;
         this.loading = false;
+        this.shouldScroll = true;
         this.cdr.markForCheck();
       },
       error: (err) => {

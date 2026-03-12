@@ -28,8 +28,24 @@ public class FeedbackController {
     public ResponseEntity<Map<String, String>> sendFeedback(
             @Valid @RequestBody FeedbackRequestDto request,
             HttpServletRequest httpRequest) {
-        String clientIp = httpRequest.getRemoteAddr();
+        String clientIp = resolveClientIp(httpRequest);
         feedbackService.sendFeedback(request, clientIp);
         return ResponseEntity.ok(Map.of("message", "Merci pour votre retour !"));
+    }
+
+    /**
+     * Resolve real client IP behind Cloudflare / Nginx reverse proxy.
+     * Priority: CF-Connecting-IP > X-Forwarded-For (first IP) > remoteAddr
+     */
+    private String resolveClientIp(HttpServletRequest request) {
+        String cfIp = request.getHeader("CF-Connecting-IP");
+        if (cfIp != null && !cfIp.isBlank()) {
+            return cfIp.trim();
+        }
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

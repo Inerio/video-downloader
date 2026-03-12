@@ -1,10 +1,12 @@
 package com.videograb.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.videograb.config.FeedbackConfig;
@@ -50,10 +52,6 @@ public class FeedbackService {
             default -> request.type();
         };
 
-        SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setTo(recipient);
-        mail.setSubject("[Download it] " + typeLabel + " — Feedback utilisateur");
-
         StringBuilder body = new StringBuilder();
         body.append("Type : ").append(typeLabel).append("\n\n");
         body.append("Message :\n").append(request.message()).append("\n");
@@ -66,12 +64,15 @@ public class FeedbackService {
             body.append("\nEmail de retour : ").append(request.email()).append("\n");
         }
 
-        mail.setText(body.toString());
-
         try {
-            mailSender.send(mail);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+            helper.setTo(recipient);
+            helper.setSubject("[Download it] " + typeLabel + " — Feedback utilisateur");
+            helper.setText(body.toString());
+            mailSender.send(mimeMessage);
             log.info("Feedback envoyé : type={}", request.type());
-        } catch (Exception e) {
+        } catch (MessagingException e) {
             log.error("Erreur lors de l'envoi du feedback", e);
             throw new RuntimeException("Impossible d'envoyer le feedback. Réessayez plus tard.");
         }

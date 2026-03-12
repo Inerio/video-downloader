@@ -28,7 +28,7 @@ import { ThemeService } from '../../services/theme.service';
     .platforms-section {
       max-width: var(--max-content-width);
       margin: 3rem auto 2rem;
-      padding: 0 1rem;
+      padding: 0 1rem 4rem;
       text-align: center;
     }
 
