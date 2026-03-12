@@ -10,9 +10,20 @@ ytdlp:
   timeout: 120
   max-filesize: 500M
 
-rate-limit:
-  requests-per-minute: 15
-
 spring:
   cache:
     type: caffeine
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+feedback:
+  recipient: ${FEEDBACK_EMAIL:julien.dearaujo.pro@gmail.com}

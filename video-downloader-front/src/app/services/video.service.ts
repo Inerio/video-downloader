@@ -14,7 +14,11 @@ export class VideoService {
     return this.http.post<VideoInfo>(`${this.apiUrl}/video/info`, { url });
   }
 
-  getDownloadUrl(url: string, formatId: string): string {
-    return `${this.apiUrl}/video/download?url=${encodeURIComponent(url)}&formatId=${encodeURIComponent(formatId)}`;
+  getDownloadUrl(url: string, formatId: string, filename?: string): string {
+    let downloadUrl = `${this.apiUrl}/video/download?url=${encodeURIComponent(url)}&formatId=${encodeURIComponent(formatId)}`;
+    if (filename) {
+      downloadUrl += `&filename=${encodeURIComponent(filename)}`;
+    }
+    return downloadUrl;
   }
 }

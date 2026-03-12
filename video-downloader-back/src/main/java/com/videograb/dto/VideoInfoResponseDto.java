@@ -8,5 +8,6 @@ public record VideoInfoResponseDto(
         String duration,
         String platform,
         String uploader,
+        String contentType,
         List<VideoFormatDto> formats
 ) {}
