@@ -28,5 +28,6 @@ Thumbs.db
 *.log
 
 # Claude
+.claude/
 CLAUDE.md
 PLAN.md
