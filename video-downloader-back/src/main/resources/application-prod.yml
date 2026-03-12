@@ -1,0 +1,7 @@
+cors:
+  allowed-origins: https://download-it.primary-key.ovh
+
+logging:
+  level:
+    com.videograb: INFO
+    org.springframework: WARN

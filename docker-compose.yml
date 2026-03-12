@@ -1,0 +1,56 @@
+services:
+  # ---- Spring Boot Backend ----
+  backend:
+    build:
+      context: ./video-downloader-back
+      dockerfile: Dockerfile
+    container_name: downloadit-backend
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - FEEDBACK_EMAIL=${FEEDBACK_EMAIL}
+    expose:
+      - "8080"
+    networks:
+      - app-network
+
+  # ---- Angular Frontend + Nginx Reverse Proxy ----
+  frontend:
+    build:
+      context: ./video-downloader-front
+      dockerfile: Dockerfile
+    container_name: downloadit-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-html:/var/www/certhtml
+    networks:
+      - app-network
+
+  # ---- Certbot (Let's Encrypt SSL) ----
+  certbot:
+    image: certbot/certbot
+    container_name: downloadit-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-html:/var/www/certhtml
+    networks:
+      - app-network
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  certbot-html:
+
+networks:
+  app-network:
+    driver: bridge
