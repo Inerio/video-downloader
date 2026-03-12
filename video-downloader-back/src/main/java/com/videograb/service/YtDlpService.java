@@ -100,6 +100,14 @@ public class YtDlpService {
             command.add("--max-filesize");
             command.add(config.getMaxFilesize());
             command.add("--no-playlist");
+
+            // Force MP4 merge for Reddit (separate audio+video streams)
+            String platform = platformDetector.detect(url);
+            if ("reddit".equals(platform)) {
+                command.add("--merge-output-format");
+                command.add("mp4");
+            }
+
             command.add("-o");
             command.add(outputTemplate.toString());
             command.add(url);
@@ -235,10 +243,51 @@ public class YtDlpService {
             }
         }
 
-        // Add a "best" meta-format
-        formats.addFirst(new VideoFormatDto("best", "Meilleure qualité", "mp4", null, null, true, true, "best"));
+        // Detect content type
+        String contentType = detectContentType(json, platform, url, formats, durationSec);
 
-        return new VideoInfoResponseDto(title, thumbnail, duration, platform, uploader, formats);
+        // Add a "best" meta-format (hasAudio is false for GIFs)
+        boolean bestHasAudio = !"gif".equals(contentType);
+        formats.addFirst(new VideoFormatDto("best", "Meilleure qualité", "mp4", null, null, bestHasAudio, true, "best"));
+
+        return new VideoInfoResponseDto(title, thumbnail, duration, platform, uploader, contentType, formats);
+    }
+
+    private String detectContentType(JsonNode json, String platform, String url,
+                                      List<VideoFormatDto> formats, double durationSec) {
+        String extractorKey = json.path("extractor_key").asText("");
+        String webpageUrl = json.path("webpage_url").asText(url);
+
+        // GIF: Twitter/Reddit + short duration + no audio in any format
+        if (("twitter".equals(platform) || "reddit".equals(platform)) && durationSec <= 60) {
+            boolean anyAudio = formats.stream().anyMatch(VideoFormatDto::hasAudio);
+            if (!anyAudio) {
+                return "gif";
+            }
+        }
+
+        // Short: YouTube Shorts or TikTok
+        if ("youtube".equals(platform) && webpageUrl.contains("/shorts/")) {
+            return "short";
+        }
+        if ("tiktok".equals(platform)) {
+            return "short";
+        }
+
+        // Clip: Twitch clips
+        if ("twitch".equals(platform) && extractorKey.toLowerCase().contains("clip")) {
+            return "clip";
+        }
+
+        // Audio: all formats are audio-only
+        if (!formats.isEmpty()) {
+            boolean allAudioOnly = formats.stream().allMatch(f -> f.hasAudio() && !f.hasVideo());
+            if (allAudioOnly) {
+                return "audio";
+            }
+        }
+
+        return "video";
     }
 
     private String getTextOrDefault(JsonNode node, String field, String defaultValue) {

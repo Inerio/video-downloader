@@ -15,5 +15,6 @@ export interface VideoInfo {
   duration: string;
   platform: string;
   uploader: string | null;
+  contentType: string;
   formats: VideoFormat[];
 }

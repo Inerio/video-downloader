@@ -1,40 +1,49 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { PLATFORMS, PlatformInfo } from '../../models/platform.model';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-supported-platforms',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="platforms-section">
-      <h3>Plateformes supportées</h3>
-      <div class="platforms-grid">
+    <section class="platforms-section" aria-label="Supported platforms">
+      <h3>{{ t.t()('platforms.title') }}</h3>
+      <p class="subtitle">{{ t.t()('platforms.subtitle') }}</p>
+      <div class="platforms-grid" role="list">
         @for (p of platforms; track p.name) {
-          <div class="platform-chip" [style.border-color]="p.color + '40'">
-            <i [class]="p.icon" [style.color]="p.color === '#000000' ? '#e5e5e5' : p.color"></i>
+          <div class="platform-chip" [style.border-color]="p.color + '40'" role="listitem">
+            <i [class]="p.icon" [style.color]="p.color === '#000000' ? '#e5e5e5' : p.color" aria-hidden="true"></i>
             <span>{{ p.label }}</span>
           </div>
         }
-        <div class="platform-chip more">
-          <span>+ 1000 autres</span>
+        <div class="platform-chip more" role="listitem">
+          <span>{{ t.t()('platforms.more') }}</span>
         </div>
       </div>
     </section>
   `,
   styles: [`
     .platforms-section {
-      max-width: 700px;
+      max-width: var(--max-content-width);
       margin: 3rem auto 2rem;
       padding: 0 1rem;
       text-align: center;
     }
 
     h3 {
-      color: #6b7280;
+      color: var(--text-muted);
       font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      margin: 0 0 1rem;
+      margin: 0 0 0.4rem;
       font-weight: 500;
+    }
+
+    .subtitle {
+      color: #4b5563;
+      font-size: 0.8rem;
+      margin: 0 0 1rem;
     }
 
     .platforms-grid {
@@ -49,24 +58,20 @@ import { PLATFORMS, PlatformInfo } from '../../models/platform.model';
       align-items: center;
       gap: 0.4rem;
       padding: 0.4rem 0.8rem;
-      background: #1e1e2e;
-      border: 1px solid #2d2d3f;
-      border-radius: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
       color: #d1d5db;
       font-size: 0.8rem;
       transition: border-color 0.2s;
 
-      &:hover {
-        border-color: #6366f1;
-      }
-
-      &.more {
-        color: #9ca3af;
-        font-style: italic;
-      }
+      &:hover { border-color: var(--accent-primary); }
+      &.more { color: var(--text-secondary); font-style: italic; }
     }
   `]
 })
 export class SupportedPlatformsComponent {
   platforms: PlatformInfo[] = Object.values(PLATFORMS).filter(p => p.name !== 'unknown');
+
+  constructor(public t: TranslationService) {}
 }

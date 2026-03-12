@@ -14,10 +14,15 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/video")
 public class VideoController {
+
+    private static final Pattern SAFE_FORMAT_ID = Pattern.compile("^[a-zA-Z0-9+\\-_]+$");
+    private static final int MAX_URL_LENGTH = 2048;
+    private static final int MAX_FILENAME_LENGTH = 200;
 
     private final VideoService videoService;
 
@@ -37,16 +42,24 @@ public class VideoController {
             @RequestParam(defaultValue = "best") String formatId,
             @RequestParam(required = false) String filename) throws IOException {
 
+        // Validate URL length
+        if (url.length() > MAX_URL_LENGTH) {
+            throw new IllegalArgumentException("URL trop longue");
+        }
+
+        // Validate formatId: allow safe yt-dlp IDs or direct http URLs (Twitter fallback)
+        if (!formatId.startsWith("http") && !SAFE_FORMAT_ID.matcher(formatId).matches()) {
+            throw new IllegalArgumentException("Format ID invalide");
+        }
+
         Path filePath = videoService.download(url, formatId);
         Resource resource = new FileSystemResource(filePath);
 
-        // Use custom filename if provided, otherwise use the actual file name
         String extension = getExtension(filePath.getFileName().toString());
         String downloadName;
         if (filename != null && !filename.isBlank()) {
-            // Sanitize and append original extension
-            String sanitized = filename.replaceAll("[<>:\"/\\\\|?*]", "").trim();
-            downloadName = sanitized + "." + extension;
+            String sanitized = sanitizeFilename(filename);
+            downloadName = sanitized.isEmpty() ? filePath.getFileName().toString() : sanitized + "." + extension;
         } else {
             downloadName = filePath.getFileName().toString();
         }
@@ -61,6 +74,14 @@ public class VideoController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
                 .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(Files.size(filePath)))
                 .body(resource);
+    }
+
+    private String sanitizeFilename(String name) {
+        String sanitized = name.replaceAll("[<>:\"/\\\\|?*\\x00-\\x1F]", "").trim();
+        if (sanitized.length() > MAX_FILENAME_LENGTH) {
+            sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH).trim();
+        }
+        return sanitized;
     }
 
     private String getExtension(String filename) {

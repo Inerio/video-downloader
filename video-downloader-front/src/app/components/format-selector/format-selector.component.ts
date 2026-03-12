@@ -1,37 +1,43 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { VideoFormat } from '../../models/video-info.model';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-format-selector',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="formats">
-      <!-- Best quality main button -->
       @if (bestFormat) {
-        <button class="best-btn" (click)="selectFormat.emit(bestFormat.formatId)">
+        <button class="best-btn" (click)="selectFormat.emit(bestFormat.formatId)" [attr.aria-label]="downloadLabel">
           <div class="best-left">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
             </svg>
-            <span>Télécharger — Meilleure qualité</span>
+            <span>{{ downloadLabel }}</span>
           </div>
-          <span class="best-tag">Recommandé</span>
+          @if (contentType === 'video') {
+            <span class="best-tag">{{ t.t()('format.recommended') }}</span>
+          }
         </button>
       }
 
-      <!-- Expandable other formats -->
-      @if (otherFormats.length > 0) {
-        <button class="toggle-btn" (click)="expanded = !expanded">
-          <span>{{ expanded ? 'Masquer' : 'Voir' }} les autres formats ({{ otherFormats.length }})</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.rotated]="expanded">
+      @if (otherFormats.length > 0 && contentType !== 'gif') {
+        <button
+          class="toggle-btn"
+          (click)="expanded = !expanded"
+          [attr.aria-expanded]="expanded"
+          aria-controls="format-list">
+          <span>{{ expanded ? t.t()('format.hide') : t.t()('format.show') }} {{ t.t()('format.others') }} ({{ otherFormats.length }})</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.rotated]="expanded" aria-hidden="true">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </button>
 
         @if (expanded) {
-          <div class="format-list">
+          <div class="format-list" id="format-list" role="list">
             @for (format of otherFormats; track format.formatId) {
-              <button class="format-item" (click)="selectFormat.emit(format.formatId)">
+              <button class="format-item" (click)="selectFormat.emit(format.formatId)" role="listitem" [attr.aria-label]="format.quality + ' ' + format.extension">
                 <div class="format-info">
                   <span class="format-quality">{{ format.quality }}</span>
                   <span class="format-ext">.{{ format.extension }}</span>
@@ -48,7 +54,7 @@ import { VideoFormat } from '../../models/video-info.model';
                     <span class="tag tag-audio">Audio only</span>
                   }
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
                 </svg>
               </button>
@@ -59,9 +65,7 @@ import { VideoFormat } from '../../models/video-info.model';
     </div>
   `,
   styles: [`
-    .formats {
-      margin-top: 1.5rem;
-    }
+    .formats { margin-top: 1.5rem; }
 
     .best-btn {
       display: flex;
@@ -69,9 +73,9 @@ import { VideoFormat } from '../../models/video-info.model';
       justify-content: space-between;
       width: 100%;
       padding: 1rem 1.25rem;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: var(--gradient-primary);
       border: none;
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       color: white;
       cursor: pointer;
       font: inherit;
@@ -79,14 +83,8 @@ import { VideoFormat } from '../../models/video-info.model';
       font-weight: 600;
       transition: opacity 0.2s, transform 0.1s;
 
-      &:hover {
-        opacity: 0.92;
-        transform: translateY(-1px);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
+      &:hover { opacity: 0.92; transform: translateY(-1px); }
+      &:active { transform: translateY(0); }
     }
 
     .best-left {
@@ -99,7 +97,7 @@ import { VideoFormat } from '../../models/video-info.model';
       font-size: 0.75rem;
       padding: 0.25rem 0.6rem;
       background: rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       font-weight: 500;
     }
 
@@ -112,25 +110,19 @@ import { VideoFormat } from '../../models/video-info.model';
       margin-top: 0.75rem;
       padding: 0.6rem;
       background: none;
-      border: 1px solid #2d2d3f;
-      border-radius: 8px;
-      color: #9ca3af;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
       cursor: pointer;
       font: inherit;
       font-size: 0.85rem;
       transition: color 0.2s, border-color 0.2s;
 
-      &:hover {
-        color: #e5e5e5;
-        border-color: #6366f1;
-      }
+      &:hover { color: var(--text-primary); border-color: var(--accent-primary); }
 
       svg {
         transition: transform 0.2s;
-
-        &.rotated {
-          transform: rotate(180deg);
-        }
+        &.rotated { transform: rotate(180deg); }
       }
     }
 
@@ -145,30 +137,22 @@ import { VideoFormat } from '../../models/video-info.model';
       animation: fadeIn 0.2s ease;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .format-item {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      background: #252536;
-      border: 1px solid #2d2d3f;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
       border-radius: 10px;
       padding: 0.6rem 0.85rem;
-      color: #e5e5e5;
+      color: var(--text-primary);
       cursor: pointer;
       transition: all 0.15s;
       text-align: left;
       font: inherit;
       font-size: 0.9rem;
 
-      &:hover {
-        border-color: #6366f1;
-        background: #2a2a40;
-      }
+      &:hover { border-color: var(--accent-primary); background: #2a2a40; }
     }
 
     .format-info {
@@ -179,13 +163,10 @@ import { VideoFormat } from '../../models/video-info.model';
     }
 
     .format-quality { font-weight: 600; }
-    .format-ext { color: #9ca3af; font-size: 0.8rem; }
-    .format-size { color: #6b7280; font-size: 0.8rem; }
+    .format-ext { color: var(--text-secondary); font-size: 0.8rem; }
+    .format-size { color: var(--text-muted); font-size: 0.8rem; }
 
-    .format-tags {
-      display: flex;
-      gap: 0.25rem;
-    }
+    .format-tags { display: flex; gap: 0.25rem; }
 
     .tag {
       font-size: 0.7rem;
@@ -198,25 +179,36 @@ import { VideoFormat } from '../../models/video-info.model';
     .tag-video { background: #1e3a5f; color: #93c5fd; }
     .tag-audio { background: #4a1d5e; color: #d8b4fe; }
 
-    .dl-icon {
-      color: #6366f1;
-      flex-shrink: 0;
-    }
+    .dl-icon { color: var(--accent-primary); flex-shrink: 0; }
   `]
 })
 export class FormatSelectorComponent {
   @Input() formats: VideoFormat[] = [];
+  @Input() contentType = 'video';
   @Output() selectFormat = new EventEmitter<string>();
 
   expanded = false;
 
+  constructor(public t: TranslationService) {}
+
+  get downloadLabel(): string {
+    switch (this.contentType) {
+      case 'gif': return this.t.t()('format.download.gif');
+      case 'short': return this.t.t()('format.download.short');
+      case 'clip': return this.t.t()('format.download.clip');
+      case 'audio': return this.t.t()('format.download.audio');
+      default: return this.t.t()('format.download.best');
+    }
+  }
+
   get bestFormat(): VideoFormat | undefined {
-    return this.formats.find(f => f.formatId === 'best');
+    return this.formats.find(f => f.formatId === 'best') || this.formats[0];
   }
 
   get otherFormats(): VideoFormat[] {
+    const bestId = this.bestFormat?.formatId;
     return this.formats.filter(f =>
-      f.formatId !== 'best' && (f.hasAudio || f.hasVideo)
+      f.formatId !== bestId && (f.hasAudio || f.hasVideo)
     );
   }
 
