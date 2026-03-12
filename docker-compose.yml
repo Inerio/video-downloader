@@ -25,31 +25,10 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - backend
-    volumes:
-      - certbot-etc:/etc/letsencrypt:ro
-      - certbot-var:/var/lib/letsencrypt
-      - certbot-html:/var/www/certhtml
     networks:
       - app-network
-
-  # ---- Certbot (Let's Encrypt SSL) ----
-  certbot:
-    image: certbot/certbot
-    container_name: downloadit-certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - certbot-html:/var/www/certhtml
-    networks:
-      - app-network
-
-volumes:
-  certbot-etc:
-  certbot-var:
-  certbot-html:
 
 networks:
   app-network:

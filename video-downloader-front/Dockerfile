@@ -18,9 +18,6 @@ COPY --from=build /app/dist/video-downloader-front/browser /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create directories for certbot
-RUN mkdir -p /var/www/certhtml
-
-EXPOSE 80 443
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
