@@ -1,8 +1,11 @@
 package com.videograb.controller;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.videograb.dto.VideoInfoRequestDto;
 import com.videograb.dto.VideoInfoResponseDto;
 import com.videograb.service.VideoService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -16,6 +19,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 @RestController
@@ -25,15 +29,23 @@ public class VideoController {
     private static final Pattern SAFE_FORMAT_ID = Pattern.compile("^[a-zA-Z0-9+\\-_]+$");
     private static final int MAX_URL_LENGTH = 2048;
     private static final int MAX_FILENAME_LENGTH = 200;
+    private static final int MAX_REQUESTS_PER_MINUTE = 15;
 
     private final VideoService videoService;
+    private final Cache<String, Integer> videoRateLimitCache = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .build();
 
     public VideoController(VideoService videoService) {
         this.videoService = videoService;
     }
 
     @PostMapping("/info")
-    public ResponseEntity<VideoInfoResponseDto> getVideoInfo(@Valid @RequestBody VideoInfoRequestDto request) {
+    public ResponseEntity<VideoInfoResponseDto> getVideoInfo(
+            @Valid @RequestBody VideoInfoRequestDto request,
+            HttpServletRequest httpRequest) {
+        checkRateLimit(httpRequest);
         VideoInfoResponseDto info = videoService.getInfo(request.url());
         return ResponseEntity.ok(info);
     }
@@ -42,7 +54,10 @@ public class VideoController {
     public ResponseEntity<Resource> downloadVideo(
             @RequestParam String url,
             @RequestParam(defaultValue = "best") String formatId,
-            @RequestParam(required = false) String filename) throws IOException {
+            @RequestParam(required = false) String filename,
+            HttpServletRequest httpRequest) throws IOException {
+
+        checkRateLimit(httpRequest);
 
         // Validate URL length
         if (url.length() > MAX_URL_LENGTH) {
@@ -100,5 +115,22 @@ public class VideoController {
     private String getExtension(String filename) {
         int dot = filename.lastIndexOf('.');
         return dot >= 0 ? filename.substring(dot + 1) : "mp4";
+    }
+
+    private void checkRateLimit(HttpServletRequest request) {
+        String ip = resolveClientIp(request);
+        Integer count = videoRateLimitCache.getIfPresent(ip);
+        if (count != null && count >= MAX_REQUESTS_PER_MINUTE) {
+            throw new IllegalArgumentException("Trop de requêtes. Réessayez dans une minute.");
+        }
+        videoRateLimitCache.put(ip, (count == null ? 0 : count) + 1);
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String cfIp = request.getHeader("CF-Connecting-IP");
+        if (cfIp != null && !cfIp.isBlank()) return cfIp.trim();
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
+        return request.getRemoteAddr();
     }
 }

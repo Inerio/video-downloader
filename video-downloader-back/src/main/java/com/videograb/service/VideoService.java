@@ -68,6 +68,9 @@ public class VideoService {
         if (url == null || url.isBlank()) {
             throw new IllegalArgumentException("L'URL ne peut pas être vide");
         }
+        if (url.length() > 2048) {
+            throw new IllegalArgumentException("URL trop longue");
+        }
         // Block control characters (log injection prevention)
         if (url.chars().anyMatch(c -> c < 0x20 && c != 0x09)) {
             throw new IllegalArgumentException("URL contient des caractères invalides");
@@ -82,15 +85,31 @@ public class VideoService {
             if (host == null) {
                 throw new IllegalArgumentException("URL invalide");
             }
-            // Block private/loopback IPs (SSRF prevention)
-            InetAddress addr = InetAddress.getByName(host);
-            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()) {
+            // Block raw IP URLs (SSRF via DNS rebinding prevention)
+            if (host.matches("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$")) {
+                throw new IllegalArgumentException("Les URLs avec adresse IP ne sont pas autorisées");
+            }
+            // Block localhost variants
+            if (host.equalsIgnoreCase("localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
                 throw new IllegalArgumentException("URL vers une adresse privée non autorisée");
+            }
+            // Resolve ALL IPs for the host and block private ranges
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            for (InetAddress addr : addresses) {
+                if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()
+                        || addr.isAnyLocalAddress() || addr.isMulticastAddress()) {
+                    throw new IllegalArgumentException("URL vers une adresse privée non autorisée");
+                }
+                // Block cloud metadata endpoints (169.254.x.x)
+                byte[] bytes = addr.getAddress();
+                if (bytes.length >= 2 && (bytes[0] & 0xFF) == 169 && (bytes[1] & 0xFF) == 254) {
+                    throw new IllegalArgumentException("URL vers une adresse privée non autorisée");
+                }
             }
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            throw new IllegalArgumentException("URL invalide : " + url);
+            throw new IllegalArgumentException("URL invalide");
         }
     }
 }

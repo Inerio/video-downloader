@@ -1,35 +1,14 @@
 services:
-  # ---- Spring Boot Backend ----
   backend:
     build:
       context: ./video-downloader-back
       dockerfile: Dockerfile
     container_name: downloadit-backend
     restart: always
+    ports:
+      - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - FEEDBACK_EMAIL=${FEEDBACK_EMAIL}
-    expose:
-      - "8080"
-    networks:
-      - app-network
-
-  # ---- Angular Frontend + Nginx Reverse Proxy ----
-  frontend:
-    build:
-      context: ./video-downloader-front
-      dockerfile: Dockerfile
-    container_name: downloadit-frontend
-    restart: always
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge

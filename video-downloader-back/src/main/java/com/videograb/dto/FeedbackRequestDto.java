@@ -17,7 +17,7 @@ public record FeedbackRequestDto(
         @Size(max = 2048, message = "URL trop longue")
         String url,
 
-        @Email(message = "Email invalide")
+        @Email(regexp = "^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$", message = "Email invalide")
         @Size(max = 320, message = "Email trop long")
         String email
 ) {

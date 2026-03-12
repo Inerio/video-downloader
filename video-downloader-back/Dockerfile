@@ -17,11 +17,17 @@ RUN apt-get update && \
     ln -s /opt/venv/bin/yt-dlp /usr/local/bin/yt-dlp && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser
+
 # Create temp directory for yt-dlp downloads
-RUN mkdir -p /tmp/videograb && chmod 777 /tmp/videograb
+RUN mkdir -p /tmp/videograb && chown appuser:appuser /tmp/videograb
 
 WORKDIR /app
 COPY --from=build /app/target/video-downloader-back-*.jar app.jar
+RUN chown appuser:appuser app.jar
+
+USER 1000
 
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_OPTS="-Xmx512m"
