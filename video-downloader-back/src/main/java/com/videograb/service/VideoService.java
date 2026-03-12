@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.file.Path;
 
@@ -35,7 +36,7 @@ public class VideoService {
         try {
             return ytDlpService.getVideoInfo(url);
         } catch (VideoNotFoundException e) {
-            // Fallback pour Twitter : essayer via l'API FixTweet
+            // Twitter fallback: try FixTweet API when yt-dlp fails
             String platform = platformDetector.detect(url);
             if ("twitter".equals(platform)) {
                 log.info("yt-dlp failed for Twitter URL, trying FixTweet fallback: {}", url);
@@ -55,7 +56,7 @@ public class VideoService {
             formatId = "best";
         }
 
-        // Si le formatId est une URL directe (média récupéré via fallback)
+        // If formatId is a direct URL (media retrieved via Twitter fallback)
         if (formatId.startsWith("http")) {
             return twitterFallback.downloadDirect(formatId, config.getTempDir());
         }
@@ -67,18 +68,28 @@ public class VideoService {
         if (url == null || url.isBlank()) {
             throw new IllegalArgumentException("L'URL ne peut pas être vide");
         }
+        // Block control characters (log injection prevention)
+        if (url.chars().anyMatch(c -> c < 0x20 && c != 0x09)) {
+            throw new IllegalArgumentException("URL contient des caractères invalides");
+        }
         try {
             URI uri = URI.create(url);
-            if (uri.getScheme() == null || !uri.getScheme().startsWith("http")) {
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
                 throw new IllegalArgumentException("L'URL doit commencer par http:// ou https://");
             }
-            if (uri.getHost() == null) {
+            String host = uri.getHost();
+            if (host == null) {
                 throw new IllegalArgumentException("URL invalide");
             }
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().startsWith("L'URL") || e.getMessage().equals("URL invalide")) {
-                throw e;
+            // Block private/loopback IPs (SSRF prevention)
+            InetAddress addr = InetAddress.getByName(host);
+            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()) {
+                throw new IllegalArgumentException("URL vers une adresse privée non autorisée");
             }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
             throw new IllegalArgumentException("URL invalide : " + url);
         }
     }

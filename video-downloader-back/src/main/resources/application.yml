@@ -11,6 +11,8 @@ ytdlp:
   max-filesize: 500M
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   cache:
     type: caffeine
   mail:
@@ -26,4 +28,4 @@ spring:
             enable: true
 
 feedback:
-  recipient: ${FEEDBACK_EMAIL:julien.dearaujo.pro@gmail.com}
+  recipient: ${FEEDBACK_EMAIL:}

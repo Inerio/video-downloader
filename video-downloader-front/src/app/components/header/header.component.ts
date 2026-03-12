@@ -31,7 +31,7 @@ import { TranslationService } from '../../services/translation.service';
               <rect x="2" y="6" width="14" height="12" rx="2"/>
             </svg>
           </span>
-          <h1>VideoGrab</h1>
+          <h1>Download it</h1>
         </div>
         <p class="tagline">{{ t.t()('header.tagline') }}</p>
       </div>

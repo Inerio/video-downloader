@@ -15,11 +15,14 @@ import org.springframework.web.client.RestTemplate;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +34,9 @@ public class TwitterFallbackService {
     private static final Pattern TWEET_ID_PATTERN = Pattern.compile("/status/(\\d+)");
     private static final String FXTWITTER_API = "https://api.fxtwitter.com/i/status/";
     private static final long MAX_DOWNLOAD_SIZE = 500L * 1024 * 1024; // 500MB
+    private static final Set<String> ALLOWED_MEDIA_HOSTS = Set.of(
+            "video.twimg.com", "pbs.twimg.com", "ton.twimg.com", "abs.twimg.com"
+    );
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
@@ -83,6 +89,7 @@ public class TwitterFallbackService {
      * Download a file directly from a URL using streaming (no full byte[] in memory).
      */
     public Path downloadDirect(String mediaUrl, String tempDir) {
+        validateMediaUrl(mediaUrl);
         try {
             String extension = detectExtension(mediaUrl);
             Path dir = Path.of(tempDir);
@@ -92,7 +99,7 @@ public class TwitterFallbackService {
             HttpURLConnection conn = (HttpURLConnection) URI.create(mediaUrl).toURL().openConnection();
             conn.setConnectTimeout(10_000);
             conn.setReadTimeout(60_000);
-            conn.setRequestProperty("User-Agent", "VideoGrab/1.0");
+            conn.setRequestProperty("User-Agent", "DownloadIt/1.0");
 
             try {
                 long contentLength = conn.getContentLengthLong();
@@ -189,6 +196,30 @@ public class TwitterFallbackService {
             return author != null ? author + " - " + tweetText : tweetText;
         }
         return author != null ? author + " - Twitter GIF" : "Twitter GIF";
+    }
+
+    private void validateMediaUrl(String mediaUrl) {
+        try {
+            URI uri = URI.create(mediaUrl);
+            String host = uri.getHost();
+            if (host == null || !ALLOWED_MEDIA_HOSTS.contains(host.toLowerCase())) {
+                throw new DownloadException("Domaine non autorisé pour le téléchargement direct: " + host);
+            }
+            String scheme = uri.getScheme();
+            if (scheme == null || !scheme.equals("https")) {
+                throw new DownloadException("Seul HTTPS est autorisé pour le téléchargement direct");
+            }
+            InetAddress addr = InetAddress.getByName(host);
+            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()) {
+                throw new DownloadException("Adresse IP non autorisée");
+            }
+        } catch (DownloadException e) {
+            throw e;
+        } catch (UnknownHostException e) {
+            throw new DownloadException("Impossible de résoudre le domaine", e);
+        } catch (Exception e) {
+            throw new DownloadException("URL de média invalide: " + mediaUrl, e);
+        }
     }
 
     private String detectExtension(String url) {

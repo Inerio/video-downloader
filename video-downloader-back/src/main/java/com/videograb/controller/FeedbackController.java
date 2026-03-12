@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.videograb.dto.FeedbackRequestDto;
 import com.videograb.service.FeedbackService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -24,8 +25,11 @@ public class FeedbackController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> sendFeedback(@Valid @RequestBody FeedbackRequestDto request) {
-        feedbackService.sendFeedback(request);
+    public ResponseEntity<Map<String, String>> sendFeedback(
+            @Valid @RequestBody FeedbackRequestDto request,
+            HttpServletRequest httpRequest) {
+        String clientIp = httpRequest.getRemoteAddr();
+        feedbackService.sendFeedback(request, clientIp);
         return ResponseEntity.ok(Map.of("message", "Merci pour votre retour !"));
     }
 }

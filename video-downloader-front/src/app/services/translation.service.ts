@@ -55,7 +55,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.error.analyze': 'Impossible d\'analyser cette URL. Vérifiez le lien et réessayez.',
 
     // Meta
-    'meta.title': 'VideoGrab - Téléchargez vos vidéos',
+    'meta.title': 'Download it - Téléchargez vos vidéos',
     'meta.description': 'Téléchargez des vidéos depuis YouTube, TikTok, Instagram, Twitter et plus encore. Gratuit et simple.',
   },
   en: {
@@ -110,7 +110,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.error.analyze': 'Unable to analyze this URL. Check the link and try again.',
 
     // Meta
-    'meta.title': 'VideoGrab - Download your videos',
+    'meta.title': 'Download it - Download your videos',
     'meta.description': 'Download videos from YouTube, TikTok, Instagram, Twitter and more. Free and simple.',
   }
 };
@@ -132,7 +132,7 @@ export class TranslationService {
 
   switchLang(lang: Lang) {
     this.langSignal.set(lang);
-    localStorage.setItem('videograb-lang', lang);
+    localStorage.setItem('downloadit-lang', lang);
     document.documentElement.lang = lang;
     document.title = this.t()(('meta.title'));
   }
@@ -142,7 +142,7 @@ export class TranslationService {
   }
 
   private getInitialLang(): Lang {
-    const saved = localStorage.getItem('videograb-lang') as Lang;
+    const saved = localStorage.getItem('downloadit-lang') as Lang;
     if (saved && (saved === 'fr' || saved === 'en')) {
       return saved;
     }
