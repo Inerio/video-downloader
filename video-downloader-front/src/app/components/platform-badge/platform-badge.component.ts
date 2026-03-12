@@ -18,7 +18,7 @@ import { PlatformInfo, getPlatformInfo } from '../../models/platform.model';
       gap: 0.4rem;
       padding: 0.3rem 0.75rem;
       border-radius: var(--radius-full);
-      font-size: 0.8rem;
+      font-size: 0.88rem;
       font-weight: 600;
       white-space: nowrap;
     }

@@ -14,8 +14,15 @@ import { TranslationService } from '../../services/translation.service';
   template: `
     <div class="result-card">
       <div class="video-preview">
-        @if (videoInfo.thumbnail) {
-          <img [src]="videoInfo.thumbnail" [alt]="videoInfo.title" class="thumbnail" loading="lazy" />
+        @if (videoInfo.thumbnail && !thumbnailError) {
+          <img [src]="videoInfo.thumbnail" [alt]="videoInfo.title" class="thumbnail" loading="lazy" (error)="onThumbnailError()" />
+        } @else {
+          <div class="thumbnail-fallback">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/>
+              <rect x="2" y="6" width="14" height="12" rx="2"/>
+            </svg>
+          </div>
         }
         <div class="video-meta">
           <div class="badges-row">
@@ -88,6 +95,19 @@ import { TranslationService } from '../../services/translation.service';
       flex-shrink: 0;
     }
 
+    .thumbnail-fallback {
+      width: 200px;
+      height: 120px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
     .video-meta {
       flex: 1;
       min-width: 0;
@@ -100,7 +120,7 @@ import { TranslationService } from '../../services/translation.service';
     }
 
     .content-type-badge {
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       font-weight: 600;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
@@ -130,7 +150,7 @@ import { TranslationService } from '../../services/translation.service';
       align-items: center;
       gap: 0.75rem;
       color: var(--text-secondary);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
     }
 
     .filename-section {
@@ -139,7 +159,7 @@ import { TranslationService } from '../../services/translation.service';
       label {
         display: block;
         color: var(--text-secondary);
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         margin-bottom: 0.4rem;
       }
     }
@@ -170,7 +190,7 @@ import { TranslationService } from '../../services/translation.service';
       gap: 0.5rem;
       margin-top: 1rem;
       padding: 0.75rem 1rem;
-      background: rgba(99, 102, 241, 0.1);
+      background: var(--download-status-bg);
       border-radius: 10px;
       color: var(--accent-surface);
       font-size: 0.9rem;
@@ -178,7 +198,7 @@ import { TranslationService } from '../../services/translation.service';
 
     @media (max-width: 600px) {
       .video-preview { flex-direction: column; }
-      .thumbnail { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+      .thumbnail, .thumbnail-fallback { width: 100%; height: auto; aspect-ratio: 16 / 9; }
     }
   `]
 })
@@ -188,6 +208,7 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
 
   filename = '';
   downloading = false;
+  thumbnailError = false;
   private downloadTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -209,7 +230,13 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
   ngOnChanges() {
     if (this.videoInfo) {
       this.filename = this.sanitizeFilename(this.videoInfo.title);
+      this.thumbnailError = false;
     }
+  }
+
+  onThumbnailError() {
+    this.thumbnailError = true;
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy() {

@@ -114,21 +114,21 @@ import { Subscription } from 'rxjs';
       color: white;
       font-size: 1.3rem;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 15px var(--fab-shadow);
       transition: all 0.3s ease;
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
 
-      &:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6); }
-      &.active { background: #3f3f5a; }
+      &:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--fab-shadow-hover); }
+      &.active { background: var(--fab-active-bg); }
     }
 
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--overlay-bg);
       z-index: 999;
       animation: fadeIn 0.2s ease;
     }
@@ -167,8 +167,8 @@ import { Subscription } from 'rxjs';
         border: 1px solid var(--border-light);
         border-radius: var(--radius-md);
         background: transparent;
-        color: #a0a0b8;
-        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.2s ease;
         display: flex;
@@ -177,18 +177,18 @@ import { Subscription } from 'rxjs';
         gap: 0.35rem;
 
         &:hover { border-color: var(--accent-light); color: var(--text-primary); }
-        &.selected { background: rgba(129, 140, 248, 0.15); border-color: var(--accent-light); color: var(--accent-light); }
+        &.selected { background: var(--selected-bg); border-color: var(--accent-light); color: var(--accent-light); }
       }
     }
 
     textarea, input {
       width: 100%;
       padding: 0.65rem 0.75rem;
-      background: #12121f;
+      background: var(--bg-input);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
       color: var(--text-primary);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       font-family: inherit;
       resize: vertical;
       outline: none;
@@ -200,14 +200,14 @@ import { Subscription } from 'rxjs';
       &.invalid { border-color: var(--error); }
     }
 
-    .hint { color: var(--error); font-size: 0.75rem; margin-top: -0.5rem; }
+    .hint { color: var(--error); font-size: 0.85rem; margin-top: -0.5rem; }
 
     .error {
       color: var(--error-light);
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       margin: 0;
       padding: 0.5rem;
-      background: rgba(239, 68, 68, 0.1);
+      background: var(--error-surface);
       border-radius: var(--radius-sm);
     }
 
@@ -227,7 +227,7 @@ import { Subscription } from 'rxjs';
       justify-content: center;
       gap: 0.5rem;
 
-      &:hover:not(:disabled) { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+      &:hover:not(:disabled) { box-shadow: 0 4px 15px var(--fab-shadow); }
       &:disabled { opacity: 0.6; cursor: not-allowed; }
     }
 
