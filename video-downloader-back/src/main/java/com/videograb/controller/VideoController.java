@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -69,15 +71,26 @@ public class VideoController {
             contentType = "application/octet-stream";
         }
 
+        // ASCII-safe fallback filename for Tomcat (replaces non-ASCII chars with _)
+        String asciiName = downloadName.replaceAll("[^\\x20-\\x7E]", "_");
+        // RFC 5987 encoded filename* for modern browsers (supports Unicode)
+        String encodedName = URLEncoder.encode(downloadName, StandardCharsets.UTF_8).replace("+", "%20");
+
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + asciiName + "\"; filename*=UTF-8''" + encodedName)
                 .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(Files.size(filePath)))
                 .body(resource);
     }
 
     private String sanitizeFilename(String name) {
-        String sanitized = name.replaceAll("[<>:\"/\\\\|?*\\x00-\\x1F]", "").trim();
+        // Strip control characters and dangerous Unicode (RTL override, etc.)
+        String sanitized = name.replaceAll("[\\x00-\\x1F\\x7F\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]", "");
+        // Strip dangerous filesystem characters
+        sanitized = sanitized.replaceAll("[<>:\"/\\\\|?*]", "").trim();
+        // Remove path traversal sequences
+        sanitized = sanitized.replace("..", "");
         if (sanitized.length() > MAX_FILENAME_LENGTH) {
             sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH).trim();
         }

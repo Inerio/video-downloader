@@ -18,6 +18,7 @@ video-downloader-front/.angular/
 # Env files
 *.env
 .env.*
+**/application-local.properties
 
 # OS
 .DS_Store

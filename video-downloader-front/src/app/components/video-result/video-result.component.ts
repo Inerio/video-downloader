@@ -239,6 +239,12 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
   }
 
   private sanitizeFilename(name: string): string {
-    return name.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim();
+    return name
+      .replace(/[\x00-\x1F\x7F\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+      .replace(/[<>:"/\\|?*#]/g, '')
+      .replace(/\.\./g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 200);
   }
 }

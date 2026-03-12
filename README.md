@@ -1,4 +1,4 @@
-# VideoGrab
+# Download it
 
 Application web pour télécharger des vidéos depuis n'importe quelle plateforme en collant simplement le lien.
 
