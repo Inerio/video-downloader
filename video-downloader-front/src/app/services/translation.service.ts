@@ -51,6 +51,15 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'feedback.send': 'Envoyer',
     'feedback.error': 'Erreur lors de l\'envoi. Réessayez plus tard.',
 
+    // Donation
+    'donation.button': 'Offrez-moi un café',
+    'donation.label': 'Soutenir le projet sur Buy Me a Coffee',
+
+    // Theme
+    'theme.clair': 'Clair',
+    'theme.obscure': 'Obscure',
+    'theme.label': 'Thème',
+
     // App
     'app.error.analyze': 'Impossible d\'analyser cette URL. Vérifiez le lien et réessayez.',
 
@@ -105,6 +114,15 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'feedback.sending': 'Sending...',
     'feedback.send': 'Send',
     'feedback.error': 'Failed to send. Please try again later.',
+
+    // Donation
+    'donation.button': 'Buy me a coffee',
+    'donation.label': 'Support the project on Buy Me a Coffee',
+
+    // Theme
+    'theme.clair': 'Clair',
+    'theme.obscure': 'Obscure',
+    'theme.label': 'Theme',
 
     // App
     'app.error.analyze': 'Unable to analyze this URL. Check the link and try again.',

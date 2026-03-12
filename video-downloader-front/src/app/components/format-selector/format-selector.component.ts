@@ -94,7 +94,7 @@ import { TranslationService } from '../../services/translation.service';
     }
 
     .best-tag {
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       padding: 0.25rem 0.6rem;
       background: rgba(255, 255, 255, 0.2);
       border-radius: var(--radius-sm);
@@ -115,7 +115,7 @@ import { TranslationService } from '../../services/translation.service';
       color: var(--text-secondary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       transition: color 0.2s, border-color 0.2s;
 
       &:hover { color: var(--text-primary); border-color: var(--accent-primary); }
@@ -152,7 +152,7 @@ import { TranslationService } from '../../services/translation.service';
       font: inherit;
       font-size: 0.9rem;
 
-      &:hover { border-color: var(--accent-primary); background: #2a2a40; }
+      &:hover { border-color: var(--accent-primary); background: var(--format-item-hover-bg); }
     }
 
     .format-info {
@@ -163,13 +163,13 @@ import { TranslationService } from '../../services/translation.service';
     }
 
     .format-quality { font-weight: 600; }
-    .format-ext { color: var(--text-secondary); font-size: 0.8rem; }
-    .format-size { color: var(--text-muted); font-size: 0.8rem; }
+    .format-ext { color: var(--text-secondary); font-size: 0.88rem; }
+    .format-size { color: var(--text-muted); font-size: 0.88rem; }
 
     .format-tags { display: flex; gap: 0.25rem; }
 
     .tag {
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
       font-weight: 500;

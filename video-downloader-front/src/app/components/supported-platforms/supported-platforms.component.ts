@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { PLATFORMS, PlatformInfo } from '../../models/platform.model';
 import { TranslationService } from '../../services/translation.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-supported-platforms',
@@ -13,7 +14,7 @@ import { TranslationService } from '../../services/translation.service';
       <div class="platforms-grid" role="list">
         @for (p of platforms; track p.name) {
           <div class="platform-chip" [style.border-color]="p.color + '40'" role="listitem">
-            <i [class]="p.icon" [style.color]="p.color === '#000000' ? '#e5e5e5' : p.color" aria-hidden="true"></i>
+            <i [class]="p.icon" [style.color]="p.color === '#000000' ? (themeService.isDark() ? '#E8E4DB' : '#2C2517') : p.color" aria-hidden="true"></i>
             <span>{{ p.label }}</span>
           </div>
         }
@@ -33,7 +34,7 @@ import { TranslationService } from '../../services/translation.service';
 
     h3 {
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       margin: 0 0 0.4rem;
@@ -41,8 +42,8 @@ import { TranslationService } from '../../services/translation.service';
     }
 
     .subtitle {
-      color: #4b5563;
-      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
       margin: 0 0 1rem;
     }
 
@@ -61,8 +62,8 @@ import { TranslationService } from '../../services/translation.service';
       background: var(--bg-input);
       border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      color: #d1d5db;
-      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
       transition: border-color 0.2s;
 
       &:hover { border-color: var(--accent-primary); }
@@ -73,5 +74,5 @@ import { TranslationService } from '../../services/translation.service';
 export class SupportedPlatformsComponent {
   platforms: PlatformInfo[] = Object.values(PLATFORMS).filter(p => p.name !== 'unknown');
 
-  constructor(public t: TranslationService) {}
+  constructor(public t: TranslationService, public themeService: ThemeService) {}
 }

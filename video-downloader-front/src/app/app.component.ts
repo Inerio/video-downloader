@@ -4,18 +4,20 @@ import { UrlInputComponent } from './components/url-input/url-input.component';
 import { VideoResultComponent } from './components/video-result/video-result.component';
 import { SupportedPlatformsComponent } from './components/supported-platforms/supported-platforms.component';
 import { FeedbackComponent } from './components/feedback/feedback.component';
+import { DonationComponent } from './components/donation/donation.component';
 import { VideoService } from './services/video.service';
 import { VideoInfo } from './models/video-info.model';
 import { TranslationService } from './services/translation.service';
+import { ThemeService } from './services/theme.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [HeaderComponent, UrlInputComponent, VideoResultComponent, SupportedPlatformsComponent, FeedbackComponent],
+  imports: [HeaderComponent, UrlInputComponent, VideoResultComponent, SupportedPlatformsComponent, FeedbackComponent, DonationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="app">
+    <div class="app" [class.idle]="!hasContent">
       <app-header />
 
       <main>
@@ -33,6 +35,7 @@ import { Subscription } from 'rxjs';
       </main>
 
       <app-supported-platforms />
+      <app-donation />
       <app-feedback />
     </div>
   `,
@@ -41,6 +44,7 @@ import { Subscription } from 'rxjs';
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     main {
@@ -48,12 +52,21 @@ import { Subscription } from 'rxjs';
       padding: 1rem 0;
     }
 
+    /* Idle state: center header + input vertically */
+    .app.idle {
+      justify-content: center;
+    }
+
+    .app.idle main {
+      flex: 0 0 auto;
+    }
+
     .error-banner {
       max-width: var(--max-content-width);
       margin: 1rem auto 0;
       padding: 0.75rem 1rem;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: var(--error-surface);
+      border: 1px solid var(--error-border);
       border-radius: 10px;
       animation: slideUp 0.3s ease;
 
@@ -71,11 +84,16 @@ export class AppComponent implements OnInit, OnDestroy {
   error = '';
   loading = false;
 
+  get hasContent(): boolean {
+    return !!(this.videoInfo || this.loading || this.error);
+  }
+
   private analyzeSub?: Subscription;
 
   constructor(
     private videoService: VideoService,
     private t: TranslationService,
+    private themeService: ThemeService,
     private cdr: ChangeDetectorRef
   ) {}
 

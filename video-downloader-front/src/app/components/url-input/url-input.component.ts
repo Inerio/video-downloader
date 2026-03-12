@@ -66,7 +66,7 @@ import { TranslationService } from '../../services/translation.service';
       border: 2px solid var(--border-default);
       border-radius: var(--radius-xl);
       padding: 0.5rem;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background-color 0.4s ease;
 
       &:focus-within { border-color: var(--accent-primary); }
       &.has-platform { padding-left: 0.75rem; }
@@ -114,7 +114,7 @@ import { TranslationService } from '../../services/translation.service';
 
     .error {
       color: var(--error);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       margin: 0.5rem 0 0 0.5rem;
     }
 
@@ -123,16 +123,16 @@ import { TranslationService } from '../../services/translation.service';
       align-items: center;
       gap: 0.4rem;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       margin: 0.5rem 0 0 0.25rem;
 
-      i { font-size: 0.75rem; color: var(--accent-light); }
+      i { font-size: 0.85rem; color: var(--accent-light); }
     }
 
     @media (max-width: 480px) {
       .paste-btn {
         padding: 0.6rem 0.75rem;
-        font-size: 0.8rem;
+        font-size: 0.88rem;
       }
     }
   `]
