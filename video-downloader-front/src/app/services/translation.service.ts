@@ -62,6 +62,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // App
     'app.error.analyze': 'Impossible d\'analyser cette URL. Vérifiez le lien et réessayez.',
+    'app.clipboard.detected': 'Lien détecté — Appuyez pour télécharger',
 
     // Meta
     'meta.title': 'Download it - Téléchargez vos vidéos',
@@ -126,6 +127,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // App
     'app.error.analyze': 'Unable to analyze this URL. Check the link and try again.',
+    'app.clipboard.detected': 'Link detected — Tap to download',
 
     // Meta
     'meta.title': 'Download it - Download your videos',

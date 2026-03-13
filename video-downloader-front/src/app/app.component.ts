@@ -9,6 +9,7 @@ import { VideoService } from './services/video.service';
 import { VideoInfo } from './models/video-info.model';
 import { TranslationService } from './services/translation.service';
 import { ThemeService } from './services/theme.service';
+import { detectPlatform } from './models/platform.model';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -21,7 +22,14 @@ import { Subscription } from 'rxjs';
       <app-header />
 
       <main>
-        <app-url-input [loading]="loading" (analyze)="onAnalyze($event)" />
+        <app-url-input [loading]="loading" [initialUrl]="currentUrl" (analyze)="onAnalyze($event)" />
+
+        @if (clipboardUrl && !loading && !videoInfo) {
+          <button class="clipboard-banner" (click)="onClipboardAccept()">
+            <i class="fas fa-link" aria-hidden="true"></i>
+            {{ t.t()('app.clipboard.detected') }}
+          </button>
+        }
 
         @if (error) {
           <div class="error-banner" role="alert">
@@ -76,6 +84,32 @@ import { Subscription } from 'rxjs';
         font-size: 0.9rem;
       }
     }
+
+    .clipboard-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      max-width: var(--max-content-width);
+      margin: 0.75rem auto 0;
+      padding: 0.75rem 1.25rem;
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      animation: slideUp 0.3s ease;
+      transition: opacity 0.2s, transform 0.1s;
+      width: calc(100% - 2rem);
+
+      &:hover { opacity: 0.9; transform: translateY(-1px); }
+      &:active { transform: translateY(0); }
+
+      i { font-size: 0.85rem; }
+    }
   `]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -83,7 +117,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentUrl = '';
   error = '';
   loading = false;
+  clipboardUrl: string | null = null;
   private shouldScroll = false;
+  private lastClipboardUrl = '';
 
   get hasContent(): boolean {
     return !!(this.videoInfo || this.loading || this.error);
@@ -93,7 +129,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   constructor(
     private videoService: VideoService,
-    private t: TranslationService,
+    public t: TranslationService,
     private themeService: ThemeService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -101,6 +137,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
   ngOnInit() {
     document.documentElement.lang = this.t.lang();
     document.title = this.t.t()('meta.title');
+    this.handleShareTarget();
+    this.setupClipboardWatch();
   }
 
   ngAfterViewChecked() {
@@ -115,6 +153,75 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnDestroy() {
     this.analyzeSub?.unsubscribe();
+  }
+
+  onClipboardAccept() {
+    if (this.clipboardUrl) {
+      this.onAnalyze(this.clipboardUrl);
+      this.clipboardUrl = null;
+    }
+  }
+
+  private handleShareTarget() {
+    const params = new URLSearchParams(window.location.search);
+    const sharedUrl = params.get('shared_url');
+    const sharedText = params.get('shared_text');
+
+    const url = this.extractUrl(sharedUrl, sharedText);
+    if (url) {
+      window.history.replaceState({}, '', '/');
+      this.onAnalyze(url);
+    }
+  }
+
+  private setupClipboardWatch() {
+    if (!window.matchMedia('(display-mode: standalone)').matches) return;
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible' || this.loading) return;
+
+      try {
+        const text = await navigator.clipboard.readText();
+        const url = this.extractUrlFromText(text);
+        if (url && url !== this.lastClipboardUrl && url !== this.currentUrl && detectPlatform(url) !== 'unknown') {
+          this.lastClipboardUrl = url;
+          this.clipboardUrl = url;
+          this.cdr.markForCheck();
+        }
+      } catch {
+        // Clipboard permission denied — ignore
+      }
+    });
+  }
+
+  private extractUrl(sharedUrl: string | null, sharedText: string | null): string | null {
+    if (sharedUrl && this.isValidUrl(sharedUrl)) return sharedUrl;
+
+    if (sharedText) {
+      const url = this.extractUrlFromText(sharedText);
+      if (url) return url;
+    }
+
+    if (sharedUrl) {
+      const url = this.extractUrlFromText(sharedUrl);
+      if (url) return url;
+    }
+
+    return null;
+  }
+
+  private extractUrlFromText(text: string): string | null {
+    const match = text?.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/i);
+    return match && this.isValidUrl(match[0]) ? match[0] : null;
+  }
+
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return url.startsWith('http://') || url.startsWith('https://');
+    } catch {
+      return false;
+    }
   }
 
   onAnalyze(url: string) {
