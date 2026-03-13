@@ -38,7 +38,7 @@ import { TranslationService } from '../../services/translation.service';
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
             </svg>
-            {{ t.t()('input.paste.button') }}
+            <span class="paste-label">{{ t.t()('input.paste.button') }}</span>
           </button>
         }
       </div>
@@ -134,6 +134,7 @@ import { TranslationService } from '../../services/translation.service';
         padding: 0.6rem 0.75rem;
         font-size: 0.88rem;
       }
+      .paste-label { display: none; }
     }
   `]
 })
