@@ -73,6 +73,11 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.install.dontshow': 'Ne plus afficher',
     'app.install.ok': 'Compris !',
 
+    // Settings
+    'settings.title': 'Paramètres',
+    'settings.autoDownload.label': 'Téléchargement automatique',
+    'settings.autoDownload.description': 'Télécharger automatiquement en meilleure qualité lors d\'un partage',
+
     // Meta
     'meta.title': 'Download it - Téléchargez vos vidéos',
     'meta.description': 'Téléchargez des vidéos depuis YouTube, TikTok, Instagram, Twitter et plus encore. Gratuit et simple.',
@@ -146,6 +151,11 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.install.step3': '3. In the share menu, pin Download It for quick access',
     'app.install.dontshow': 'Don\'t show again',
     'app.install.ok': 'Got it!',
+
+    // Settings
+    'settings.title': 'Settings',
+    'settings.autoDownload.label': 'Auto-download',
+    'settings.autoDownload.description': 'Automatically download best quality when sharing a link',
 
     // Meta
     'meta.title': 'Download it - Download your videos',

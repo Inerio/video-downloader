@@ -9,6 +9,7 @@ import { VideoService } from './services/video.service';
 import { VideoInfo } from './models/video-info.model';
 import { TranslationService } from './services/translation.service';
 import { ThemeService } from './services/theme.service';
+import { SettingsService } from './services/settings.service';
 import { detectPlatform } from './models/platform.model';
 import { Subscription } from 'rxjs';
 
@@ -263,6 +264,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     private videoService: VideoService,
     public t: TranslationService,
     private themeService: ThemeService,
+    private settingsService: SettingsService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -333,10 +335,48 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     const sharedText = params.get('shared_text');
 
     const url = this.extractUrl(sharedUrl, sharedText);
-    if (url) {
-      window.history.replaceState({}, '', '/');
+    if (!url) return;
+
+    window.history.replaceState({}, '', '/');
+
+    if (this.settingsService.isAutoDownload()) {
+      this.autoDownload(url);
+    } else {
       this.onAnalyze(url);
     }
+  }
+
+  private autoDownload(url: string) {
+    this.currentUrl = url;
+    this.loading = true;
+    this.error = '';
+    this.cdr.markForCheck();
+
+    this.analyzeSub?.unsubscribe();
+    this.analyzeSub = this.videoService.getVideoInfo(url).subscribe({
+      next: (info) => {
+        const format = info.formats?.[0];
+        if (format) {
+          const filename = info.title?.replace(/[<>:"/\\|?*]/g, '').substring(0, 200) || 'download';
+          const downloadUrl = this.videoService.getDownloadUrl(url, format.formatId, filename);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+        this.videoInfo = info;
+        this.loading = false;
+        this.shouldScroll = true;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.error = err.error?.message || this.t.t()('app.error.analyze');
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   private setupClipboardWatch() {
