@@ -21,6 +21,33 @@ import { Subscription } from 'rxjs';
     <div class="app" [class.idle]="!hasContent">
       <app-header />
 
+      @if (showInstallLink) {
+        <button class="install-link" [class.fading]="installLinkFading" (click)="openInstallPopup()">
+          <i class="fas fa-download" aria-hidden="true"></i>
+          {{ t.t()('app.install.link') }}
+        </button>
+      }
+
+      @if (showInstallPopup) {
+        <div class="install-overlay" (click)="closeInstallPopup(false)">
+          <div class="install-popup" (click)="$event.stopPropagation()">
+            <h3>{{ t.t()('app.install.title') }}</h3>
+            <div class="install-steps">
+              <p>{{ t.t()('app.install.step1') }}</p>
+              <p>{{ t.t()('app.install.step2') }}</p>
+              <p>{{ t.t()('app.install.step3') }}</p>
+            </div>
+            <label class="install-checkbox">
+              <input type="checkbox" #dontShow>
+              {{ t.t()('app.install.dontshow') }}
+            </label>
+            <button class="install-close-btn" (click)="closeInstallPopup(dontShow.checked)">
+              {{ t.t()('app.install.ok') }}
+            </button>
+          </div>
+        </div>
+      }
+
       <main>
         <app-url-input [loading]="loading" [initialUrl]="currentUrl" (analyze)="onAnalyze($event)" />
 
@@ -110,6 +137,107 @@ import { Subscription } from 'rxjs';
 
       i { font-size: 0.85rem; }
     }
+
+    .install-link {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin: 0 auto;
+      padding: 0.4rem 1rem;
+      background: transparent;
+      color: var(--accent-primary);
+      border: none;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      opacity: 1;
+      animation: slideDown 0.3s ease;
+      transition: opacity 0.5s ease;
+
+      &:hover { text-decoration: underline; }
+      &.fading { opacity: 0; }
+      i { font-size: 0.7rem; }
+    }
+
+    @media (max-width: 768px) {
+      .install-link { display: flex; }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .install-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .install-popup {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      max-width: 350px;
+      width: 100%;
+      animation: slideUp 0.3s ease;
+
+      h3 {
+        margin: 0 0 1rem;
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        text-align: center;
+      }
+    }
+
+    .install-steps {
+      margin-bottom: 1.25rem;
+
+      p {
+        margin: 0.5rem 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+    }
+
+    .install-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+
+      input { accent-color: var(--accent-primary); }
+    }
+
+    .install-close-btn {
+      display: block;
+      width: 100%;
+      padding: 0.6rem;
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+
+      &:hover { opacity: 0.9; }
+    }
   `]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -118,8 +246,12 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
   error = '';
   loading = false;
   clipboardUrl: string | null = null;
+  showInstallLink = false;
+  showInstallPopup = false;
+  installLinkFading = false;
   private shouldScroll = false;
   private lastClipboardUrl = '';
+  private installFadeTimeout?: ReturnType<typeof setTimeout>;
 
   get hasContent(): boolean {
     return !!(this.videoInfo || this.loading || this.error);
@@ -139,6 +271,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     document.title = this.t.t()('meta.title');
     this.handleShareTarget();
     this.setupClipboardWatch();
+    this.setupInstallBanner();
   }
 
   ngAfterViewChecked() {
@@ -155,11 +288,43 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.analyzeSub?.unsubscribe();
   }
 
+  openInstallPopup() {
+    this.showInstallLink = false;
+    this.installLinkFading = false;
+    if (this.installFadeTimeout) clearTimeout(this.installFadeTimeout);
+    this.showInstallPopup = true;
+    this.cdr.markForCheck();
+  }
+
+  closeInstallPopup(dontShowAgain: boolean) {
+    this.showInstallPopup = false;
+    if (dontShowAgain) {
+      localStorage.setItem('downloadit-pwa-hide-install', 'true');
+    }
+    this.cdr.markForCheck();
+  }
+
   onClipboardAccept() {
     if (this.clipboardUrl) {
       this.onAnalyze(this.clipboardUrl);
       this.clipboardUrl = null;
     }
+  }
+
+  private setupInstallBanner() {
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (localStorage.getItem('downloadit-pwa-hide-install')) return;
+    if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+
+    this.showInstallLink = true;
+    this.installFadeTimeout = setTimeout(() => {
+      this.installLinkFading = true;
+      this.cdr.markForCheck();
+      setTimeout(() => {
+        this.showInstallLink = false;
+        this.cdr.markForCheck();
+      }, 500);
+    }, 15000);
   }
 
   private handleShareTarget() {
