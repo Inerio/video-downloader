@@ -64,6 +64,15 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.error.analyze': 'Impossible d\'analyser cette URL. Vérifiez le lien et réessayez.',
     'app.clipboard.detected': 'Lien détecté — Appuyez pour télécharger',
 
+    // Install banner
+    'app.install.link': 'Installer l\'app',
+    'app.install.title': 'Installer Download It',
+    'app.install.step1': '1. Appuyez sur le menu \u22ee de votre navigateur',
+    'app.install.step2': '2. Sélectionnez « Ajouter à l\'écran d\'accueil »',
+    'app.install.step3': '3. Dans le menu de partage, épinglez Download It pour un accès rapide',
+    'app.install.dontshow': 'Ne plus afficher',
+    'app.install.ok': 'Compris !',
+
     // Meta
     'meta.title': 'Download it - Téléchargez vos vidéos',
     'meta.description': 'Téléchargez des vidéos depuis YouTube, TikTok, Instagram, Twitter et plus encore. Gratuit et simple.',
@@ -128,6 +137,15 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // App
     'app.error.analyze': 'Unable to analyze this URL. Check the link and try again.',
     'app.clipboard.detected': 'Link detected — Tap to download',
+
+    // Install banner
+    'app.install.link': 'Install the app',
+    'app.install.title': 'Install Download It',
+    'app.install.step1': '1. Tap the \u22ee menu in your browser',
+    'app.install.step2': '2. Select "Add to Home Screen"',
+    'app.install.step3': '3. In the share menu, pin Download It for quick access',
+    'app.install.dontshow': 'Don\'t show again',
+    'app.install.ok': 'Got it!',
 
     // Meta
     'meta.title': 'Download it - Download your videos',
