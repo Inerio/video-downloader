@@ -17,8 +17,8 @@ RUN apt-get update && \
     ln -s /opt/venv/bin/yt-dlp /usr/local/bin/yt-dlp && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser
+# Create non-root user for security (use -o to allow non-unique UID if it already exists)
+RUN useradd -m -u 1000 -o appuser 2>/dev/null || true
 
 # Create temp directory for yt-dlp downloads
 RUN mkdir -p /tmp/videograb && chown appuser:appuser /tmp/videograb
