@@ -105,10 +105,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngAfterViewChecked() {
     if (this.shouldScroll) {
-      this.shouldScroll = false;
       const el = document.querySelector('app-video-result');
       if (el) {
-        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        this.shouldScroll = false;
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
       }
     }
   }
