@@ -16,12 +16,27 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
+            echo "=== Git pull ==="
             cd /opt/apps/video-downloader
+            git reset --hard HEAD
+            git clean -fd
             git pull origin main
+            echo "=== Frontend build ==="
             cd video-downloader-front
             npm install
             npm run build
+            echo "=== Backend restart ==="
             cd ..
             docker compose down
             docker compose up -d --build
-            systemctl restart nginx
+            echo "=== Nginx reload ==="
+            systemctl reload nginx
+            echo "=== Deploy complete ==="
+
+      - name: Purge Cloudflare cache
+        run: |
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
