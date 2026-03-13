@@ -51,8 +51,10 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              }
+              },
+              "src/manifest.webmanifest"
             ],
+            "serviceWorker": "ngsw-config.json",
             "styles": [
               "src/styles.scss"
             ],
@@ -94,7 +96,8 @@
           },
           "defaultConfiguration": "development",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "host": "0.0.0.0"
           }
         },
         "extract-i18n": {

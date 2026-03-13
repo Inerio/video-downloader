@@ -142,6 +142,12 @@ export class UrlInputComponent {
   url = '';
   detectedPlatform = '';
   @Input() loading = false;
+  @Input() set initialUrl(value: string) {
+    if (value) {
+      this.url = value;
+      this.onUrlChange(value);
+    }
+  }
   errorMessage = '';
 
   @Output() analyze = new EventEmitter<string>();
