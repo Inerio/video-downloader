@@ -9,66 +9,72 @@ import { SettingsService } from '../../services/settings.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="header">
-      <!-- Theme toggle: top-left (sun/moon) -->
-      <button
-        class="theme-toggle"
-        (click)="themeService.toggleTheme()"
-        [attr.aria-label]="t.t()('theme.label')">
-        @if (themeService.isDark()) {
+      <div class="controls-left">
+        <button
+          class="icon-btn"
+          (click)="themeService.toggleTheme()"
+          [attr.aria-label]="t.t()('theme.label')">
+          @if (themeService.isDark()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          }
+        </button>
+        <button
+          class="icon-btn"
+          (click)="toggleSettings()"
+          [attr.aria-label]="t.t()('settings.title')">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        }
-      </button>
-
-      <!-- Settings toggle: next to theme -->
-      <button
-        class="settings-toggle"
-        (click)="toggleSettings()"
-        [attr.aria-label]="t.t()('settings.title')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
+        </button>
+      </div>
+      <div class="lang-switch-wrapper">
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button
+            role="radio"
+            [attr.aria-checked]="t.lang() === 'fr'"
+            [class.active]="t.lang() === 'fr'"
+            (click)="t.switchLang('fr')">
+            FR
+          </button>
+          <button
+            role="radio"
+            [attr.aria-checked]="t.lang() === 'en'"
+            [class.active]="t.lang() === 'en'"
+            (click)="t.switchLang('en')">
+            EN
+          </button>
+        </div>
+      </div>
 
       @if (showSettings) {
         <div class="settings-overlay" (click)="toggleSettings()">
-          <div class="settings-panel" (click)="$event.stopPropagation()">
+          <div class="settings-panel" role="dialog" aria-modal="true" [attr.aria-label]="t.t()('settings.title')" (click)="$event.stopPropagation()">
             <h3>{{ t.t()('settings.title') }}</h3>
             <div class="setting-row">
               <div class="setting-info">
-                <span class="setting-label">{{ t.t()('settings.autoDownload.label') }}</span>
-                <span class="setting-desc">{{ t.t()('settings.autoDownload.description') }}</span>
+                <span class="setting-label" id="auto-download-label">{{ t.t()('settings.autoDownload.label') }}</span>
+                <span class="setting-desc" id="auto-download-desc">{{ t.t()('settings.autoDownload.description') }}</span>
               </div>
-              <button class="toggle-switch" [class.active]="settingsService.isAutoDownload()" (click)="settingsService.toggleAutoDownload()">
+              <button
+                class="toggle-switch"
+                role="switch"
+                [class.active]="settingsService.isAutoDownload()"
+                [attr.aria-checked]="settingsService.isAutoDownload()"
+                aria-labelledby="auto-download-label"
+                aria-describedby="auto-download-desc"
+                (click)="settingsService.toggleAutoDownload()">
                 <span class="toggle-knob"></span>
               </button>
             </div>
           </div>
         </div>
       }
-
-      <!-- Language switch: top-right -->
-      <div class="lang-switch" role="radiogroup" aria-label="Language">
-        <button
-          role="radio"
-          [attr.aria-checked]="t.lang() === 'fr'"
-          [class.active]="t.lang() === 'fr'"
-          (click)="t.switchLang('fr')">
-          FR
-        </button>
-        <button
-          role="radio"
-          [attr.aria-checked]="t.lang() === 'en'"
-          [class.active]="t.lang() === 'en'"
-          (click)="t.switchLang('en')">
-          EN
-        </button>
-      </div>
 
       <div class="header-content">
         <div class="logo">
@@ -88,40 +94,28 @@ import { SettingsService } from '../../services/settings.service';
   styles: [`
     .header {
       text-align: center;
-      padding: 2rem 1rem 1rem;
+      padding: 1rem 1rem 1rem;
       position: relative;
       transition: var(--transition-theme);
     }
 
-    .theme-toggle {
+    .controls-left {
       position: fixed;
       top: 1rem;
-      left: 1.5rem;
-      z-index: 100;
+      left: 1rem;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-md);
-      color: var(--accent-primary);
-      cursor: pointer;
-      transition: all 0.3s ease;
-
-      &:hover {
-        border-color: var(--accent-primary);
-        color: var(--accent-light);
-        transform: scale(1.05);
-      }
+      gap: 0.5rem;
+      z-index: 100;
     }
 
-    .settings-toggle {
+    .lang-switch-wrapper {
       position: fixed;
       top: 1rem;
-      left: calc(1.5rem + 48px);
+      right: 1rem;
       z-index: 100;
+    }
+
+    .icon-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -145,7 +139,8 @@ import { SettingsService } from '../../services/settings.service';
       position: fixed;
       inset: 0;
       z-index: 1001;
-      background: rgba(0, 0, 0, 0.6);
+      order: 99;
+      background: var(--overlay-bg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -155,7 +150,7 @@ import { SettingsService } from '../../services/settings.service';
 
     .settings-panel {
       background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border-default);
       border-radius: var(--radius-lg);
       padding: 1.5rem;
       max-width: 380px;
@@ -215,7 +210,7 @@ import { SettingsService } from '../../services/settings.service';
         left: 3px;
         width: 20px;
         height: 20px;
-        background: white;
+        background: var(--bg-card);
         border-radius: 50%;
         transition: transform 0.2s ease;
       }
@@ -234,10 +229,6 @@ import { SettingsService } from '../../services/settings.service';
     }
 
     .lang-switch {
-      position: fixed;
-      top: 1rem;
-      right: 1.5rem;
-      z-index: 100;
       display: flex;
       background: var(--bg-input);
       border: 1px solid var(--border-default);
@@ -258,7 +249,7 @@ import { SettingsService } from '../../services/settings.service';
         letter-spacing: 0.03em;
 
         &:hover { color: var(--text-primary); }
-        &.active { background: var(--accent-primary); color: #111110; }
+        &.active { background: var(--accent-primary); color: var(--text-on-accent); }
       }
     }
 
@@ -277,7 +268,7 @@ import { SettingsService } from '../../services/settings.service';
       height: 48px;
       background: var(--gradient-primary);
       border-radius: var(--radius-lg);
-      color: white;
+      color: var(--text-on-accent);
     }
 
     h1 {
@@ -301,11 +292,33 @@ import { SettingsService } from '../../services/settings.service';
     }
 
     @media (max-width: 480px) {
-      .theme-toggle { top: 0.5rem; left: 0.75rem; width: 36px; height: 36px; z-index: 100; }
-      .settings-toggle { top: 0.5rem; left: calc(0.75rem + 42px); width: 36px; height: 36px; }
-      .lang-switch { top: 0.5rem; right: 0.75rem; z-index: 100; }
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .controls-left {
+        position: static;
+        z-index: auto;
+        order: 1;
+      }
+
+      .lang-switch-wrapper {
+        position: static;
+        z-index: auto;
+        order: 2;
+        margin-left: auto;
+      }
+
+      .header-content {
+        order: 3;
+        width: 100%;
+        margin-top: 0.75rem;
+      }
+
+      .icon-btn { width: 36px; height: 36px; }
       h1 { font-size: 1.6rem; }
-      .tagline { font-size: 0.9rem; padding: 0 2rem; }
+      .tagline { font-size: 0.9rem; padding: 0 1rem; }
 
       .lang-switch button {
         padding: 0.3rem 0.55rem;

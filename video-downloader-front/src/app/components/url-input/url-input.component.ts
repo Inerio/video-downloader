@@ -92,7 +92,7 @@ import { TranslationService } from '../../services/translation.service';
       gap: 0.4rem;
       padding: 0.75rem 1.25rem;
       background: var(--gradient-primary);
-      color: white;
+      color: var(--text-on-accent);
       border: none;
       border-radius: var(--radius-lg);
       font-size: 0.9rem;

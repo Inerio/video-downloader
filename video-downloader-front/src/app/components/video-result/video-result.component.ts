@@ -128,10 +128,10 @@ import { TranslationService } from '../../services/translation.service';
       letter-spacing: 0.05em;
     }
 
-    .badge-gif { background: #064e3b; color: #6ee7b7; }
-    .badge-short { background: #7c2d12; color: #fdba74; }
-    .badge-clip { background: #4a1d5e; color: #d8b4fe; }
-    .badge-audio { background: #1e3a5f; color: #93c5fd; }
+    .badge-gif { background: var(--tag-gif-bg); color: var(--tag-gif-text); }
+    .badge-short { background: var(--tag-short-bg); color: var(--tag-short-text); }
+    .badge-clip { background: var(--tag-clip-bg); color: var(--tag-clip-text); }
+    .badge-audio { background: var(--tag-audio-bg); color: var(--tag-audio-text); }
 
     .title {
       font-size: 1.1rem;

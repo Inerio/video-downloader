@@ -76,7 +76,7 @@ import { TranslationService } from '../../services/translation.service';
       background: var(--gradient-primary);
       border: none;
       border-radius: var(--radius-lg);
-      color: white;
+      color: var(--text-on-accent);
       cursor: pointer;
       font: inherit;
       font-size: 1rem;
@@ -96,7 +96,7 @@ import { TranslationService } from '../../services/translation.service';
     .best-tag {
       font-size: 0.85rem;
       padding: 0.25rem 0.6rem;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.15);
       border-radius: var(--radius-sm);
       font-weight: 500;
     }
@@ -175,9 +175,9 @@ import { TranslationService } from '../../services/translation.service';
       font-weight: 500;
     }
 
-    .tag-full { background: #064e3b; color: #6ee7b7; }
-    .tag-video { background: #1e3a5f; color: #93c5fd; }
-    .tag-audio { background: #4a1d5e; color: #d8b4fe; }
+    .tag-full { background: var(--tag-full-bg); color: var(--tag-full-text); }
+    .tag-video { background: var(--tag-video-bg); color: var(--tag-video-text); }
+    .tag-audio { background: var(--tag-audio-bg); color: var(--tag-audio-text); }
 
     .dl-icon { color: var(--accent-primary); flex-shrink: 0; }
   `]

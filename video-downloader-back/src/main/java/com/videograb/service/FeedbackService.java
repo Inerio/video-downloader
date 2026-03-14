@@ -37,13 +37,12 @@ public class FeedbackService {
             throw new RuntimeException("Le système de feedback n'est pas configuré. Réessayez plus tard.");
         }
 
-        // Rate limiting by IP address
-        Integer count = feedbackRateLimitCache.getIfPresent(clientIp);
-        if (count != null && count >= MAX_FEEDBACKS_PER_HOUR) {
+        // Rate limiting by IP address (atomic increment)
+        int count = feedbackRateLimitCache.asMap().merge(clientIp, 1, Integer::sum);
+        if (count > MAX_FEEDBACKS_PER_HOUR) {
             log.warn("Rate limit exceeded for IP: {}", clientIp);
             throw new RuntimeException("Trop de feedbacks envoyés. Réessayez dans une heure.");
         }
-        feedbackRateLimitCache.put(clientIp, (count == null ? 0 : count) + 1);
 
         String typeLabel = switch (request.type()) {
             case "BUG" -> "Bug";

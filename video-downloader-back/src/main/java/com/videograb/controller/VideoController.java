@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.videograb.dto.VideoInfoRequestDto;
 import com.videograb.dto.VideoInfoResponseDto;
 import com.videograb.service.VideoService;
+import com.videograb.util.ClientIpUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
@@ -64,8 +65,15 @@ public class VideoController {
             throw new IllegalArgumentException("URL trop longue");
         }
 
-        // Validate formatId: allow safe yt-dlp IDs or direct http URLs (Twitter fallback)
-        if (!formatId.startsWith("http") && !SAFE_FORMAT_ID.matcher(formatId).matches()) {
+        // Validate formatId: allow safe yt-dlp IDs or direct https URLs (Twitter fallback)
+        if (formatId.startsWith("https://")) {
+            // Direct URL format (Twitter fallback) — validated downstream by domain whitelist
+            try {
+                new java.net.URI(formatId).toURL();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Format ID invalide: URL malformée");
+            }
+        } else if (!SAFE_FORMAT_ID.matcher(formatId).matches()) {
             throw new IllegalArgumentException("Format ID invalide");
         }
 
@@ -118,19 +126,10 @@ public class VideoController {
     }
 
     private void checkRateLimit(HttpServletRequest request) {
-        String ip = resolveClientIp(request);
-        Integer count = videoRateLimitCache.getIfPresent(ip);
-        if (count != null && count >= MAX_REQUESTS_PER_MINUTE) {
+        String ip = ClientIpUtils.resolve(request);
+        int count = videoRateLimitCache.asMap().merge(ip, 1, Integer::sum);
+        if (count > MAX_REQUESTS_PER_MINUTE) {
             throw new IllegalArgumentException("Trop de requêtes. Réessayez dans une minute.");
         }
-        videoRateLimitCache.put(ip, (count == null ? 0 : count) + 1);
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String cfIp = request.getHeader("CF-Connecting-IP");
-        if (cfIp != null && !cfIp.isBlank()) return cfIp.trim();
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
-        return request.getRemoteAddr();
     }
 }

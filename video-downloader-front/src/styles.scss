@@ -12,30 +12,31 @@
 }
 
 // ==========================================
-// Obscure Theme (Dark) — Bronze, Beksinski
+// Obscure Theme (Dark) — Premium dark gold
 // ==========================================
 [data-theme="obscure"] {
-  // Backgrounds — warm charcoal blacks
-  --bg-primary: #111110;
-  --bg-card: #1C1B18;
-  --bg-input: #1F1E1A;
-  --bg-elevated: #2A2924;
+  // Backgrounds — deep warm blacks
+  --bg-primary: #0F0F0E;
+  --bg-card: #1A1916;
+  --bg-input: #1E1D19;
+  --bg-elevated: #282722;
 
   // Borders
   --border-default: #3A3831;
-  --border-light: #33312B;
+  --border-light: #2F2D27;
 
   // Text — warm off-whites
-  --text-primary: #E8E4DB;
-  --text-secondary: #A8A290;
-  --text-muted: #706B5E;
-  --text-placeholder: #585345;
+  --text-primary: #EBE7DF;
+  --text-secondary: #ADA799;
+  --text-muted: #7D7869;
+  --text-placeholder: #5C5749;
 
-  // Accent — burnished gold
-  --accent-primary: #C9A84C;
-  --accent-secondary: #A68B3C;
-  --accent-light: #D4B85C;
-  --accent-surface: #E0C96E;
+  // Accent — rich burnished gold
+  --accent-primary: #D4A843;
+  --accent-secondary: #B08D38;
+  --accent-light: #E0BC5A;
+  --accent-surface: #EBCF6E;
+  --text-on-accent: #1A1200;
 
   // Semantic
   --error: #C0392B;
@@ -45,56 +46,71 @@
   --success: #2ECC71;
 
   // Gradients
-  --gradient-primary: linear-gradient(135deg, #C9A84C, #8B7335);
-  --gradient-accent: linear-gradient(135deg, #D4B85C, #C9A84C);
+  --gradient-primary: linear-gradient(135deg, #D4A843, #9A7B2E);
+  --gradient-accent: linear-gradient(135deg, #E0BC5A, #D4A843);
 
   // Donation button
-  --donation-bg: #C9A84C;
-  --donation-text: #111110;
-  --donation-shadow: rgba(201, 168, 76, 0.3);
-  --donation-shadow-hover: rgba(201, 168, 76, 0.5);
+  --donation-bg: #D4A843;
+  --donation-text: #1A1200;
+  --donation-shadow: rgba(212, 168, 67, 0.3);
+  --donation-shadow-hover: rgba(212, 168, 67, 0.5);
 
   // Feedback FAB
-  --fab-shadow: rgba(201, 168, 76, 0.4);
-  --fab-shadow-hover: rgba(201, 168, 76, 0.6);
+  --fab-shadow: rgba(212, 168, 67, 0.4);
+  --fab-shadow-hover: rgba(212, 168, 67, 0.6);
   --fab-active-bg: #3A3831;
 
+  // Format tags
+  --tag-video-bg: #1A2D4A;
+  --tag-video-text: #93C5FD;
+  --tag-audio-bg: #3D1A52;
+  --tag-audio-text: #D8B4FE;
+  --tag-full-bg: #0A3D2E;
+  --tag-full-text: #6EE7B7;
+  --tag-short-bg: #4A1E0A;
+  --tag-short-text: #FDBA74;
+  --tag-clip-bg: #3D1A52;
+  --tag-clip-text: #D8B4FE;
+  --tag-gif-bg: #0A3D2E;
+  --tag-gif-text: #6EE7B7;
+
   // Misc
-  --overlay-bg: rgba(0, 0, 0, 0.6);
-  --selected-bg: rgba(201, 168, 76, 0.15);
-  --download-status-bg: rgba(201, 168, 76, 0.1);
-  --format-item-hover-bg: #33312B;
+  --overlay-bg: rgba(0, 0, 0, 0.65);
+  --selected-bg: rgba(212, 168, 67, 0.15);
+  --download-status-bg: rgba(212, 168, 67, 0.1);
+  --format-item-hover-bg: #302E28;
   --scrollbar-thumb: #4A4740;
   --scrollbar-thumb-hover: #5E5A52;
-  --spinner-track: rgba(201, 168, 76, 0.2);
+  --spinner-track: rgba(212, 168, 67, 0.2);
   --spinner-head: var(--accent-primary);
 }
 
 // ==========================================
-// Clair Theme (Light) — Ivory, deep gold
+// Clair Theme (Light) — Warm ivory, rich gold
 // ==========================================
 [data-theme="clair"] {
-  // Backgrounds — warm ivory/parchment
-  --bg-primary: #F5F0E6;
-  --bg-card: #FDFBF7;
-  --bg-input: #F0EBE0;
-  --bg-elevated: #EAE5D9;
+  // Backgrounds — warm ivory/cream
+  --bg-primary: #F6F1E7;
+  --bg-card: #FEFCF8;
+  --bg-input: #F1ECE1;
+  --bg-elevated: #EBE6DA;
 
   // Borders
   --border-default: #D5CFC2;
-  --border-light: #DDD8CC;
+  --border-light: #DED9CD;
 
   // Text — deep charcoal brown
-  --text-primary: #2C2517;
-  --text-secondary: #6B6354;
-  --text-muted: #968E7E;
-  --text-placeholder: #B5AFA2;
+  --text-primary: #2A2315;
+  --text-secondary: #635B4C;
+  --text-muted: #827A6B;
+  --text-placeholder: #B0A99C;
 
-  // Accent — deep warm gold
-  --accent-primary: #8B7335;
-  --accent-secondary: #6E5A28;
-  --accent-light: #A68B3C;
-  --accent-surface: #6E5A28;
+  // Accent — warm rich gold (less olive)
+  --accent-primary: #9A7B2E;
+  --accent-secondary: #7D6424;
+  --accent-light: #B0903A;
+  --accent-surface: #7D6424;
+  --text-on-accent: #FFFDF5;
 
   // Semantic
   --error: #9B2C2C;
@@ -104,28 +120,42 @@
   --success: #27AE60;
 
   // Gradients
-  --gradient-primary: linear-gradient(135deg, #8B7335, #A68B3C);
-  --gradient-accent: linear-gradient(135deg, #A68B3C, #8B7335);
+  --gradient-primary: linear-gradient(135deg, #9A7B2E, #B0903A);
+  --gradient-accent: linear-gradient(135deg, #B0903A, #9A7B2E);
 
   // Donation button
-  --donation-bg: #8B7335;
-  --donation-text: #FDFBF7;
-  --donation-shadow: rgba(139, 115, 53, 0.3);
-  --donation-shadow-hover: rgba(139, 115, 53, 0.5);
+  --donation-bg: #9A7B2E;
+  --donation-text: #FFFDF5;
+  --donation-shadow: rgba(154, 123, 46, 0.3);
+  --donation-shadow-hover: rgba(154, 123, 46, 0.5);
 
   // Feedback FAB
-  --fab-shadow: rgba(139, 115, 53, 0.4);
-  --fab-shadow-hover: rgba(139, 115, 53, 0.6);
+  --fab-shadow: rgba(154, 123, 46, 0.4);
+  --fab-shadow-hover: rgba(154, 123, 46, 0.6);
   --fab-active-bg: #D5CFC2;
 
+  // Format tags
+  --tag-video-bg: #DBEAFE;
+  --tag-video-text: #1E40AF;
+  --tag-audio-bg: #EDE9FE;
+  --tag-audio-text: #6B21A8;
+  --tag-full-bg: #D1FAE5;
+  --tag-full-text: #065F46;
+  --tag-short-bg: #FFEDD5;
+  --tag-short-text: #9A3412;
+  --tag-clip-bg: #EDE9FE;
+  --tag-clip-text: #6B21A8;
+  --tag-gif-bg: #D1FAE5;
+  --tag-gif-text: #065F46;
+
   // Misc
-  --overlay-bg: rgba(44, 37, 23, 0.4);
-  --selected-bg: rgba(139, 115, 53, 0.12);
-  --download-status-bg: rgba(139, 115, 53, 0.1);
-  --format-item-hover-bg: #E5E0D5;
+  --overlay-bg: rgba(44, 37, 23, 0.45);
+  --selected-bg: rgba(154, 123, 46, 0.12);
+  --download-status-bg: rgba(154, 123, 46, 0.1);
+  --format-item-hover-bg: #E6E1D5;
   --scrollbar-thumb: #C5BFB2;
   --scrollbar-thumb-hover: #AEA89A;
-  --spinner-track: rgba(139, 115, 53, 0.2);
+  --spinner-track: rgba(154, 123, 46, 0.2);
   --spinner-head: var(--accent-primary);
 }
 
