@@ -11,7 +11,7 @@ import java.time.Duration;
 public class RateLimitConfig {
 
     @Bean
-    public Cache<String, Integer> feedbackRateLimitCache() {
+    Cache<String, Integer> feedbackRateLimitCache() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofHours(1))
                 .maximumSize(10_000)
