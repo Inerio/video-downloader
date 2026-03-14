@@ -14,7 +14,7 @@ import { ThemeService } from '../../services/theme.service';
       <div class="platforms-grid" role="list">
         @for (p of platforms; track p.name) {
           <div class="platform-chip" [style.border-color]="p.color + '40'" role="listitem">
-            <i [class]="p.icon" [style.color]="p.color === '#000000' ? (themeService.isDark() ? '#E8E4DB' : '#2C2517') : p.color" aria-hidden="true"></i>
+            <i [class]="p.icon" [style.color]="getIconColor(p)" aria-hidden="true"></i>
             <span>{{ p.label }}</span>
           </div>
         }
@@ -75,4 +75,14 @@ export class SupportedPlatformsComponent {
   platforms: PlatformInfo[] = Object.values(PLATFORMS).filter(p => p.name !== 'unknown');
 
   constructor(public t: TranslationService, public themeService: ThemeService) {}
+
+  getIconColor(p: PlatformInfo): string {
+    if (p.color === '#000000') {
+      return this.themeService.isDark() ? '#EBE7DF' : '#2A2315';
+    }
+    if (p.color === '#FFFC00' && !this.themeService.isDark()) {
+      return '#B8A600';
+    }
+    return p.color;
+  }
 }

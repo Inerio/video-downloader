@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -50,21 +51,30 @@ public class YtDlpService {
             pb.redirectErrorStream(false);
             Process process = pb.start();
 
-            String output;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                output = reader.lines().collect(Collectors.joining("\n"));
-            }
-
-            String errorOutput;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                errorOutput = reader.lines().collect(Collectors.joining("\n"));
-            }
+            // Read stdout and stderr concurrently to avoid pipe buffer deadlock
+            CompletableFuture<String> stdoutFuture = CompletableFuture.supplyAsync(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    return reader.lines().collect(Collectors.joining("\n"));
+                } catch (Exception e) {
+                    return "";
+                }
+            });
+            CompletableFuture<String> stderrFuture = CompletableFuture.supplyAsync(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    return reader.lines().collect(Collectors.joining("\n"));
+                } catch (Exception e) {
+                    return "";
+                }
+            });
 
             boolean completed = process.waitFor(config.getTimeout(), TimeUnit.SECONDS);
             if (!completed) {
                 process.destroyForcibly();
                 throw new DownloadException("Le délai d'attente a été dépassé");
             }
+
+            String output = stdoutFuture.join();
+            String errorOutput = stderrFuture.join();
 
             if (process.exitValue() != 0) {
                 log.warn("yt-dlp failed for URL {}: {}", url, errorOutput);

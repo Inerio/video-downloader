@@ -34,7 +34,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Supported Platforms
     'platforms.title': 'Plateformes supportées',
     'platforms.subtitle': 'Vidéos, GIFs, Shorts, Clips et plus encore',
-    'platforms.more': '+ 1000 autres',
+    'platforms.more': '+ 1800 autres',
 
     // Feedback
     'feedback.open': 'Envoyer un retour',
@@ -113,7 +113,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Supported Platforms
     'platforms.title': 'Supported platforms',
     'platforms.subtitle': 'Videos, GIFs, Shorts, Clips and more',
-    'platforms.more': '+ 1000 more',
+    'platforms.more': '+ 1800 more',
 
     // Feedback
     'feedback.open': 'Send feedback',

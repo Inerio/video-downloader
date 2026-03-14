@@ -131,7 +131,8 @@ public class TwitterFallbackService {
         } catch (DownloadException e) {
             throw e;
         } catch (Exception e) {
-            throw new DownloadException("Erreur lors du téléchargement direct : " + e.getMessage(), e);
+            log.error("Direct download failed", e);
+            throw new DownloadException("Erreur lors du téléchargement direct", e);
         }
     }
 
