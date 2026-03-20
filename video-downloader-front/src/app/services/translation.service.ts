@@ -19,6 +19,11 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'result.filename.label': 'Nom du fichier',
     'result.filename.placeholder': 'Nom du fichier...',
     'result.preparing': 'Préparation du téléchargement...',
+    'result.downloading': 'Téléchargement en cours...',
+    'result.downloading.video': 'Téléchargement de la vidéo...',
+    'result.downloading.audio': 'Téléchargement de l\'audio...',
+    'result.merging': 'Fusion audio + vidéo...',
+    'result.duration.warning': 'Cette vidéo est longue, le téléchargement peut prendre plusieurs minutes.',
 
     // Format Selector
     'format.recommended': 'Recommandé',
@@ -29,6 +34,9 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'format.download.short': 'Télécharger le Short',
     'format.download.clip': 'Télécharger le Clip',
     'format.download.audio': 'Télécharger l\'audio',
+    'format.tag.full': 'Video + Audio',
+    'format.tag.video': 'Video only',
+    'format.tag.audio': 'Audio only',
     'format.download.best': 'Télécharger — Meilleure qualité',
 
     // Supported Platforms
@@ -98,6 +106,11 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'result.filename.label': 'File name',
     'result.filename.placeholder': 'File name...',
     'result.preparing': 'Preparing download...',
+    'result.downloading': 'Downloading...',
+    'result.downloading.video': 'Downloading video...',
+    'result.downloading.audio': 'Downloading audio...',
+    'result.merging': 'Merging audio + video...',
+    'result.duration.warning': 'This is a long video, the download may take several minutes.',
 
     // Format Selector
     'format.recommended': 'Recommended',
@@ -108,6 +121,9 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'format.download.short': 'Download Short',
     'format.download.clip': 'Download Clip',
     'format.download.audio': 'Download audio',
+    'format.tag.full': 'Video + Audio',
+    'format.tag.video': 'Video only',
+    'format.tag.audio': 'Audio only',
     'format.download.best': 'Download — Best quality',
 
     // Supported Platforms

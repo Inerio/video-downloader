@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, OnChanges } from '@angular/core';
 import { VideoFormat } from '../../models/video-info.model';
 import { TranslationService } from '../../services/translation.service';
 
@@ -9,7 +9,7 @@ import { TranslationService } from '../../services/translation.service';
   template: `
     <div class="formats">
       @if (bestFormat) {
-        <button class="best-btn" (click)="selectFormat.emit(bestFormat.formatId)" [attr.aria-label]="downloadLabel">
+        <button class="best-btn" (click)="selectFormat.emit(bestFormat.formatId)" [disabled]="disabled" [attr.aria-label]="downloadLabel">
           <div class="best-left">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
@@ -37,7 +37,7 @@ import { TranslationService } from '../../services/translation.service';
         @if (expanded) {
           <div class="format-list" id="format-list" role="list">
             @for (format of otherFormats; track format.formatId) {
-              <button class="format-item" (click)="selectFormat.emit(format.formatId)" role="listitem" [attr.aria-label]="format.quality + ' ' + format.extension">
+              <button class="format-item" (click)="selectFormat.emit(format.formatId)" [disabled]="disabled" role="listitem" [attr.aria-label]="format.quality + ' ' + format.extension">
                 <div class="format-info">
                   <span class="format-quality">{{ format.quality }}</span>
                   <span class="format-ext">.{{ format.extension }}</span>
@@ -47,11 +47,11 @@ import { TranslationService } from '../../services/translation.service';
                 </div>
                 <div class="format-tags">
                   @if (format.hasVideo && format.hasAudio) {
-                    <span class="tag tag-full">Video + Audio</span>
+                    <span class="tag tag-full">{{ t.t()('format.tag.full') }}</span>
                   } @else if (format.hasVideo) {
-                    <span class="tag tag-video">Video only</span>
+                    <span class="tag tag-video">{{ t.t()('format.tag.video') }}</span>
                   } @else if (format.hasAudio) {
-                    <span class="tag tag-audio">Audio only</span>
+                    <span class="tag tag-audio">{{ t.t()('format.tag.audio') }}</span>
                   }
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon" aria-hidden="true">
@@ -182,14 +182,19 @@ import { TranslationService } from '../../services/translation.service';
     .dl-icon { color: var(--accent-primary); flex-shrink: 0; }
   `]
 })
-export class FormatSelectorComponent {
+export class FormatSelectorComponent implements OnChanges {
   @Input() formats: VideoFormat[] = [];
   @Input() contentType = 'video';
+  @Input() disabled = false;
   @Output() selectFormat = new EventEmitter<string>();
 
   expanded = false;
 
   constructor(public t: TranslationService) {}
+
+  ngOnChanges() {
+    this.expanded = false;
+  }
 
   get downloadLabel(): string {
     switch (this.contentType) {

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, AfterViewChecked, ViewChild } from '@angular/core';
 import { HeaderComponent } from './components/header/header.component';
 import { UrlInputComponent } from './components/url-input/url-input.component';
 import { VideoResultComponent } from './components/video-result/video-result.component';
@@ -242,6 +242,8 @@ import { Subscription } from 'rxjs';
   `]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('videoResult') videoResultComponent?: VideoResultComponent;
+
   videoInfo: VideoInfo | null = null;
   currentUrl = '';
   error = '';
@@ -251,6 +253,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
   showInstallPopup = false;
   installLinkFading = false;
   private shouldScroll = false;
+  private pendingAutoDownloadFormat: string | null = null;
   private lastClipboardUrl = '';
   private installFadeTimeout?: ReturnType<typeof setTimeout>;
 
@@ -283,6 +286,11 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.shouldScroll = false;
         setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
       }
+    }
+    if (this.pendingAutoDownloadFormat && this.videoResultComponent) {
+      const formatId = this.pendingAutoDownloadFormat;
+      this.pendingAutoDownloadFormat = null;
+      setTimeout(() => this.videoResultComponent?.onDownload(formatId));
     }
   }
 
@@ -350,25 +358,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.currentUrl = url;
     this.loading = true;
     this.error = '';
+    this.pendingAutoDownloadFormat = null;
     this.cdr.markForCheck();
 
     this.analyzeSub?.unsubscribe();
     this.analyzeSub = this.videoService.getVideoInfo(url).subscribe({
       next: (info) => {
-        const format = info.formats?.[0];
-        if (format) {
-          const filename = info.title?.replace(/[<>:"/\\|?*]/g, '').substring(0, 200) || 'download';
-          const downloadUrl = this.videoService.getDownloadUrl(url, format.formatId, filename);
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
         this.videoInfo = info;
         this.loading = false;
         this.shouldScroll = true;
+        // Schedule auto-download trigger after view renders
+        const format = info.formats?.[0];
+        if (format) {
+          this.pendingAutoDownloadFormat = format.formatId;
+        }
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -434,6 +437,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.videoInfo = null;
     this.currentUrl = url;
     this.loading = true;
+    this.cdr.markForCheck();
 
     this.analyzeSub?.unsubscribe();
     this.analyzeSub = this.videoService.getVideoInfo(url).subscribe({
