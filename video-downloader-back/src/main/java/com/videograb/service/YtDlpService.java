@@ -15,9 +15,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -70,15 +68,15 @@ public class YtDlpService {
             boolean completed = process.waitFor(config.getTimeout(), TimeUnit.SECONDS);
             if (!completed) {
                 process.destroyForcibly();
-                throw new DownloadException("Le délai d'attente a été dépassé");
+                throw new DownloadException("L'analyse a pris trop de temps. Réessayez.");
             }
 
-            String output = stdoutFuture.join();
-            String errorOutput = stderrFuture.join();
+            String output = stdoutFuture.get(config.getTimeout() + 10, TimeUnit.SECONDS);
+            String errorOutput = stderrFuture.get(config.getTimeout() + 10, TimeUnit.SECONDS);
 
             if (process.exitValue() != 0) {
                 log.warn("yt-dlp failed for URL {}: {}", url, errorOutput);
-                throw mapYtDlpError(errorOutput);
+                throw mapYtDlpError(errorOutput, url);
             }
 
             JsonNode json = objectMapper.readTree(output);
@@ -88,18 +86,28 @@ public class YtDlpService {
             throw e;
         } catch (java.io.IOException e) {
             if (e.getMessage() != null && e.getMessage().contains("Cannot run program")) {
-                throw new DownloadException("yt-dlp n'est pas installé ou introuvable. Installez-le avec : pip install yt-dlp");
+                throw new DownloadException("Service de téléchargement indisponible. Réessayez plus tard.");
             }
-            throw new DownloadException("Erreur lors de l'extraction des informations", e);
+            throw new DownloadException("Impossible d'analyser cette vidéo. Vérifiez le lien et réessayez.", e);
         } catch (Exception e) {
-            throw new DownloadException("Erreur lors de l'extraction des informations", e);
+            throw new DownloadException("Impossible d'analyser cette vidéo. Vérifiez le lien et réessayez.", e);
         }
     }
 
     public Path downloadVideo(String url, String formatId) {
+        return downloadVideo(url, formatId, line -> log.debug("yt-dlp: {}", line));
+    }
+
+    public Path downloadVideo(String url, String formatId, java.util.function.Consumer<String> lineConsumer) {
+        String filename = UUID.randomUUID().toString();
+        Path tempDir = Path.of(config.getTempDir());
+
         try {
-            String filename = UUID.randomUUID().toString();
-            Path tempDir = Path.of(config.getTempDir());
+            // Map "best" to bestvideo+bestaudio with fallback for HD quality
+            if ("best".equals(formatId)) {
+                formatId = "bestvideo+bestaudio/best";
+            }
+
             Files.createDirectories(tempDir);
             Path outputTemplate = tempDir.resolve(filename + ".%(ext)s");
 
@@ -110,13 +118,9 @@ public class YtDlpService {
             command.add("--max-filesize");
             command.add(config.getMaxFilesize());
             command.add("--no-playlist");
-
-            // Force MP4 merge for Reddit (separate audio+video streams)
-            String platform = platformDetector.detect(url);
-            if ("reddit".equals(platform)) {
-                command.add("--merge-output-format");
-                command.add("mp4");
-            }
+            command.add("--merge-output-format");
+            command.add("mp4");
+            command.add("--newline");
 
             command.add("-o");
             command.add(outputTemplate.toString());
@@ -127,92 +131,145 @@ public class YtDlpService {
             Process process = pb.start();
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                reader.lines().forEach(line -> log.debug("yt-dlp: {}", line));
+                reader.lines().forEach(lineConsumer);
             }
 
             boolean completed = process.waitFor(config.getTimeout(), TimeUnit.SECONDS);
             if (!completed) {
                 process.destroyForcibly();
-                throw new DownloadException("Le téléchargement a pris trop de temps");
+                cleanupPartialFiles(tempDir, filename);
+                throw new DownloadException("Le téléchargement a pris trop de temps. Essayez une qualité inférieure.");
             }
 
             if (process.exitValue() != 0) {
-                throw new DownloadException("Erreur lors du téléchargement de la vidéo");
+                cleanupPartialFiles(tempDir, filename);
+                throw new DownloadException("Le téléchargement a échoué. Réessayez ou choisissez un autre format.");
             }
 
             // Find the downloaded file (extension is determined by yt-dlp)
             try (var files = Files.list(tempDir)) {
                 return files
                         .filter(f -> f.getFileName().toString().startsWith(filename))
+                        .filter(f -> !f.getFileName().toString().endsWith(".part"))
                         .findFirst()
-                        .orElseThrow(() -> new DownloadException("Fichier téléchargé introuvable"));
+                        .orElseThrow(() -> new DownloadException("Le fichier n'a pas pu être récupéré. Réessayez."));
             }
 
         } catch (DownloadException e) {
             throw e;
         } catch (java.io.IOException e) {
+            cleanupPartialFiles(tempDir, filename);
             if (e.getMessage() != null && e.getMessage().contains("Cannot run program")) {
-                throw new DownloadException("yt-dlp n'est pas installé ou introuvable. Installez-le avec : pip install yt-dlp");
+                throw new DownloadException("Service de téléchargement indisponible. Réessayez plus tard.");
             }
-            throw new DownloadException("Erreur lors du téléchargement", e);
+            throw new DownloadException("Le téléchargement a échoué. Réessayez ou choisissez un autre format.", e);
         } catch (Exception e) {
-            throw new DownloadException("Erreur lors du téléchargement", e);
+            cleanupPartialFiles(tempDir, filename);
+            throw new DownloadException("Le téléchargement a échoué. Réessayez ou choisissez un autre format.", e);
         }
     }
 
-    private RuntimeException mapYtDlpError(String errorOutput) {
-        String err = errorOutput.toLowerCase();
+    /**
+     * Clean up partial/temp files left by yt-dlp on failure (including .part files).
+     */
+    private void cleanupPartialFiles(Path tempDir, String filenamePrefix) {
+        try {
+            if (!Files.isDirectory(tempDir)) return;
+            try (var files = Files.list(tempDir)) {
+                files.filter(f -> f.getFileName().toString().startsWith(filenamePrefix))
+                     .forEach(f -> {
+                         try { Files.deleteIfExists(f); }
+                         catch (java.io.IOException ignored) {}
+                     });
+            }
+        } catch (java.io.IOException e) {
+            log.warn("Failed to clean up partial files for {}: {}", filenamePrefix, e.getMessage());
+        }
+    }
 
-        // Video not available / removed / deleted
-        if (err.contains("video unavailable") || err.contains("not available")
-                || err.contains("has been removed") || err.contains("deleted")) {
-            return new VideoNotFoundException("Cette vidéo n'est plus disponible");
+    private RuntimeException mapYtDlpError(String errorOutput, String url) {
+        String err = errorOutput.toLowerCase();
+        String platform = platformDetector.detect(url);
+        boolean isInstagram = "instagram".equals(platform);
+
+        // --- Instagram-specific errors ---
+        if (isInstagram) {
+            if (err.contains("login required") || err.contains("sign in") || err.contains("requires authentication")
+                    || err.contains("private video") || err.contains("members only")) {
+                return new VideoNotFoundException(
+                        "Ce contenu Instagram est privé ou restreint. Seuls les contenus publics sont accessibles.");
+            }
+            if (err.contains("http error 404") || err.contains("not found")
+                    || err.contains("has been removed") || err.contains("deleted")) {
+                return new VideoNotFoundException(
+                        "Ce contenu Instagram n'existe pas ou a été supprimé.");
+            }
+            if (err.contains("http error 403") || err.contains("blocked") || err.contains("forbidden")
+                    || err.contains("access denied")) {
+                return new VideoNotFoundException(
+                        "Ce contenu Instagram est inaccessible (contenu signalé, restreint ou réservé aux abonnés).");
+            }
         }
 
-        // Private / login required
+        // --- Generic: Video not available / removed / deleted ---
+        if (err.contains("video unavailable") || err.contains("has been removed") || err.contains("deleted")) {
+            return new VideoNotFoundException("Cette vidéo n'est plus disponible ou a été supprimée.");
+        }
+
+        // "not available" can mean many things — check geo before generic
+        if (err.contains("not available in your country") || err.contains("is not available in your region")
+                || err.contains("geo-restricted") || err.contains("geo restricted")) {
+            return new DownloadException("Cette vidéo est bloquée dans notre région. Essayez un autre lien.");
+        }
+
+        if (err.contains("not available")) {
+            return new VideoNotFoundException("Cette vidéo n'est pas disponible.");
+        }
+
+        // --- Private / login required ---
         if (err.contains("private video") || err.contains("sign in") || err.contains("login required")
                 || err.contains("members only") || err.contains("requires authentication")) {
-            return new VideoNotFoundException("Cette vidéo est privée ou nécessite une connexion");
+            return new VideoNotFoundException("Cette vidéo est privée ou nécessite une connexion.");
         }
 
-        // No video found in the content (e.g. tweet without video)
+        // --- No video found (e.g. tweet without media) ---
         if (err.contains("no video could be found") || err.contains("does not contain")) {
-            return new VideoNotFoundException("Aucune vidéo trouvée dans ce lien");
+            return new VideoNotFoundException("Aucune vidéo trouvée dans ce lien.");
         }
 
-        // HTTP 404
+        // --- HTTP 404 ---
         if (err.contains("http error 404") || err.contains("not found")) {
-            return new VideoNotFoundException("Cette vidéo n'existe pas ou a été supprimée");
+            return new VideoNotFoundException("Ce contenu n'existe pas ou a été supprimé.");
         }
 
-        // HTTP 403 / Blocked
+        // --- HTTP 403 / Blocked ---
         if (err.contains("http error 403") || err.contains("blocked") || err.contains("access denied")
                 || err.contains("forbidden")) {
-            return new DownloadException("L'accès à cette vidéo est bloqué par la plateforme");
+            return new DownloadException("L'accès est bloqué par la plateforme. Le contenu est peut-être restreint.");
         }
 
-        // Rate limited
+        // --- Rate limited ---
         if (err.contains("http error 429") || err.contains("too many requests") || err.contains("rate limit")) {
-            return new DownloadException("Trop de requêtes. Réessayez dans quelques minutes");
+            return new DownloadException("Trop de requêtes vers cette plateforme. Réessayez dans quelques minutes.");
         }
 
-        // Unsupported URL
+        // --- Unsupported URL ---
         if (err.contains("unsupported url") || err.contains("no suitable")) {
-            return new DownloadException("Cette URL n'est pas supportée");
+            return new DownloadException("Cette URL n'est pas supportée. Vérifiez le lien et réessayez.");
         }
 
-        // Extractor issue (e.g. "Unable to extract title; please report")
+        // --- Extractor issue ---
         if (err.contains("unable to extract") || err.contains("please report")) {
-            return new DownloadException("Extraction temporairement impossible sur cette plateforme. Essayez de mettre à jour yt-dlp");
+            return new DownloadException("Extraction temporairement impossible. La plateforme a peut-être changé son format.");
         }
 
-        // Geo-restricted
-        if (err.contains("geo") || err.contains("not available in your country") || err.contains("region")) {
-            return new DownloadException("Cette vidéo n'est pas disponible dans votre région");
+        // --- Network / timeout ---
+        if (err.contains("timed out") || err.contains("connection refused") || err.contains("network")) {
+            return new DownloadException("Erreur réseau lors de la connexion à la plateforme. Réessayez.");
         }
 
-        // Default
-        return new DownloadException("Impossible d'extraire les informations de la vidéo");
+        // --- Default ---
+        return new DownloadException("Impossible de traiter cette vidéo. Vérifiez le lien et réessayez.");
     }
 
     private VideoInfoResponseDto parseVideoInfo(JsonNode json, String url) {
@@ -225,8 +282,10 @@ public class YtDlpService {
         double durationSec = json.has("duration") ? json.get("duration").asDouble(0) : 0;
         String duration = formatDuration((long) durationSec);
 
-        // Parse formats
-        List<VideoFormatDto> formats = new ArrayList<>();
+        // Parse raw formats from yt-dlp
+        List<VideoFormatDto> rawFormats = new ArrayList<>();
+        Set<Integer> videoHeights = new LinkedHashSet<>();
+        Map<Integer, Long> videoSizeByHeight = new HashMap<>();
         JsonNode formatsNode = json.get("formats");
         if (formatsNode != null && formatsNode.isArray()) {
             for (JsonNode fmt : formatsNode) {
@@ -245,20 +304,73 @@ public class YtDlpService {
                 boolean hasVideo = fmt.has("vcodec") && !fmt.get("vcodec").asText().equals("none");
                 boolean hasAudio = fmt.has("acodec") && !fmt.get("acodec").asText().equals("none");
                 String note = getTextOrDefault(fmt, "format", "");
+                int height = fmt.has("height") && !fmt.get("height").isNull() ? fmt.get("height").asInt(0) : 0;
 
-                // Skip formats without video and audio (manifests, storyboards, etc.)
                 if (!hasVideo && !hasAudio) continue;
 
-                formats.add(new VideoFormatDto(formatId, quality, ext, filesize, resolution, hasAudio, hasVideo, note));
+                rawFormats.add(new VideoFormatDto(formatId, quality, ext, filesize, resolution, hasAudio, hasVideo, note));
+
+                // Track video-only heights for merged format generation
+                if (hasVideo && !hasAudio && height > 0) {
+                    videoHeights.add(height);
+                }
+                // Track total sizes per height for estimates
+                if (hasVideo && height > 0 && filesize != null) {
+                    videoSizeByHeight.merge(height, filesize, Math::max);
+                }
             }
         }
 
         // Detect content type
-        String contentType = detectContentType(json, platform, url, formats, durationSec);
+        String contentType = detectContentType(json, platform, url, rawFormats, durationSec);
 
-        // Add a "best" meta-format (hasAudio is false for GIFs)
+        // Build the final format list with merged options
+        List<VideoFormatDto> formats = new ArrayList<>();
+
+        // 1. "best" meta-format (always first)
         boolean bestHasAudio = !"gif".equals(contentType);
-        formats.addFirst(new VideoFormatDto("best", "Meilleure qualité", "mp4", null, null, bestHasAudio, true, "best"));
+        formats.add(new VideoFormatDto("best", "Meilleure qualité", "mp4", null, null, bestHasAudio, true, "best"));
+
+        // 2. Generate merged formats for each available resolution (descending)
+        if (!videoHeights.isEmpty()) {
+            List<Integer> sortedHeights = new ArrayList<>(videoHeights);
+            sortedHeights.sort(Collections.reverseOrder());
+
+            // Find best audio size for estimates
+            Long bestAudioSize = rawFormats.stream()
+                    .filter(f -> f.hasAudio() && !f.hasVideo())
+                    .map(VideoFormatDto::filesize)
+                    .filter(Objects::nonNull)
+                    .max(Long::compareTo)
+                    .orElse(null);
+
+            for (int h : sortedHeights) {
+                String label = h + "p";
+                String mergedFormatId = "bestvideo[height<=" + h + "]+bestaudio/best";
+                String res = (h * 16 / 9) + "x" + h; // approximate 16:9
+
+                // Estimate merged filesize (video + audio)
+                Long estimatedSize = null;
+                Long videoSize = videoSizeByHeight.get(h);
+                if (videoSize != null && bestAudioSize != null) {
+                    estimatedSize = videoSize + bestAudioSize;
+                } else if (videoSize != null) {
+                    estimatedSize = videoSize;
+                }
+
+                formats.add(new VideoFormatDto(mergedFormatId, label, "mp4", estimatedSize, res, true, true, label + " Video + Audio"));
+            }
+        }
+
+        // 3. Add natively combined formats (video + audio in one stream, e.g. TikTok, Twitter)
+        rawFormats.stream()
+                .filter(f -> f.hasAudio() && f.hasVideo())
+                .forEach(formats::add);
+
+        // 4. Add audio-only formats
+        rawFormats.stream()
+                .filter(f -> f.hasAudio() && !f.hasVideo())
+                .forEach(formats::add);
 
         return new VideoInfoResponseDto(title, thumbnail, duration, platform, uploader, contentType, formats);
     }

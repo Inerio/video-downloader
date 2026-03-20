@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 public class TempFileCleanupService {
 
     private static final Logger log = LoggerFactory.getLogger(TempFileCleanupService.class);
-    private static final Duration MAX_AGE = Duration.ofHours(1);
+    private static final Duration MAX_AGE = Duration.ofMinutes(15);
 
     private final YtDlpConfig config;
 
@@ -28,7 +28,7 @@ public class TempFileCleanupService {
         this.config = config;
     }
 
-    @Scheduled(fixedRate = 30 * 60 * 1000) // every 30 minutes
+    @Scheduled(fixedRate = 10 * 60 * 1000) // every 10 minutes
     public void cleanupOldFiles() {
         Path tempDir = Path.of(config.getTempDir());
         if (!Files.isDirectory(tempDir)) {

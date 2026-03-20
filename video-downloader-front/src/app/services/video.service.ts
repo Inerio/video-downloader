@@ -14,11 +14,23 @@ export class VideoService {
     return this.http.post<VideoInfo>(`${this.apiUrl}/video/info`, { url });
   }
 
-  getDownloadUrl(url: string, formatId: string, filename?: string): string {
-    let downloadUrl = `${this.apiUrl}/video/download?url=${encodeURIComponent(url)}&formatId=${encodeURIComponent(formatId)}`;
+  startDownload(url: string, formatId: string): Observable<{ taskId: string }> {
+    return this.http.post<{ taskId: string }>(
+      `${this.apiUrl}/video/download/start`,
+      null,
+      { params: { url, formatId } }
+    );
+  }
+
+  getProgressUrl(taskId: string): string {
+    return `${this.apiUrl}/video/download/${taskId}/progress`;
+  }
+
+  getTaskFileUrl(taskId: string, filename?: string): string {
+    let url = `${this.apiUrl}/video/download/${taskId}/file`;
     if (filename) {
-      downloadUrl += `&filename=${encodeURIComponent(filename)}`;
+      url += `?filename=${encodeURIComponent(filename)}`;
     }
-    return downloadUrl;
+    return url;
   }
 }

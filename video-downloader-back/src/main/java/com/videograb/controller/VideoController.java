@@ -2,8 +2,10 @@ package com.videograb.controller;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.videograb.dto.DownloadStartResponseDto;
 import com.videograb.dto.VideoInfoRequestDto;
 import com.videograb.dto.VideoInfoResponseDto;
+import com.videograb.service.DownloadTaskService;
 import com.videograb.service.VideoService;
 import com.videograb.util.ClientIpUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -27,19 +30,24 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/video")
 public class VideoController {
 
-    private static final Pattern SAFE_FORMAT_ID = Pattern.compile("^[a-zA-Z0-9+\\-_]+$");
+    // Allows standard yt-dlp format IDs and merged selectors like "bestvideo[height<=1080]+bestaudio/best"
+    private static final Pattern SAFE_FORMAT_ID = Pattern.compile("^[a-zA-Z0-9+\\-_\\[\\]<>=/ ]+$");
     private static final int MAX_URL_LENGTH = 2048;
     private static final int MAX_FILENAME_LENGTH = 200;
     private static final int MAX_REQUESTS_PER_MINUTE = 15;
 
+    private static final Pattern UUID_PATTERN = Pattern.compile("^[a-f0-9\\-]{36}$");
+
     private final VideoService videoService;
+    private final DownloadTaskService downloadTaskService;
     private final Cache<String, Integer> videoRateLimitCache = Caffeine.newBuilder()
             .maximumSize(10_000)
             .expireAfterWrite(1, TimeUnit.MINUTES)
             .build();
 
-    public VideoController(VideoService videoService) {
+    public VideoController(VideoService videoService, DownloadTaskService downloadTaskService) {
         this.videoService = videoService;
+        this.downloadTaskService = downloadTaskService;
     }
 
     @PostMapping("/info")
@@ -97,6 +105,89 @@ public class VideoController {
         // ASCII-safe fallback filename for Tomcat (replaces non-ASCII chars with _)
         String asciiName = downloadName.replaceAll("[^\\x20-\\x7E]", "_");
         // RFC 5987 encoded filename* for modern browsers (supports Unicode)
+        String encodedName = URLEncoder.encode(downloadName, StandardCharsets.UTF_8).replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + asciiName + "\"; filename*=UTF-8''" + encodedName)
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(Files.size(filePath)))
+                .body(resource);
+    }
+
+    @PostMapping("/download/start")
+    public ResponseEntity<DownloadStartResponseDto> startDownload(
+            @RequestParam String url,
+            @RequestParam(defaultValue = "best") String formatId,
+            HttpServletRequest httpRequest) {
+
+        checkRateLimit(httpRequest);
+
+        if (url.length() > MAX_URL_LENGTH) {
+            throw new IllegalArgumentException("URL trop longue");
+        }
+
+        if (formatId.startsWith("https://")) {
+            try {
+                new java.net.URI(formatId).toURL();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Format ID invalide: URL malformée");
+            }
+        } else if (!SAFE_FORMAT_ID.matcher(formatId).matches()) {
+            throw new IllegalArgumentException("Format ID invalide");
+        }
+
+        String taskId = downloadTaskService.createTask(url, formatId);
+        try {
+            downloadTaskService.executeDownload(taskId, url, formatId);
+        } catch (org.springframework.core.task.TaskRejectedException e) {
+            downloadTaskService.removeTask(taskId);
+            throw new IllegalArgumentException("Serveur surchargé, réessayez dans quelques instants.");
+        }
+        return ResponseEntity.ok(new DownloadStartResponseDto(taskId));
+    }
+
+    @GetMapping("/download/{taskId}/progress")
+    public SseEmitter streamProgress(@PathVariable String taskId) {
+        if (!UUID_PATTERN.matcher(taskId).matches()) {
+            throw new IllegalArgumentException("Task ID invalide");
+        }
+
+        SseEmitter emitter = new SseEmitter(600_000L); // 10 min timeout
+        downloadTaskService.subscribeToProgress(taskId, emitter);
+        return emitter;
+    }
+
+    @GetMapping("/download/{taskId}/file")
+    public ResponseEntity<Resource> getTaskFile(
+            @PathVariable String taskId,
+            @RequestParam(required = false) String filename) throws IOException {
+
+        if (!UUID_PATTERN.matcher(taskId).matches()) {
+            throw new IllegalArgumentException("Task ID invalide");
+        }
+
+        Path filePath = downloadTaskService.getFilePathAndMarkServed(taskId);
+        if (filePath == null || !Files.exists(filePath)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new FileSystemResource(filePath);
+        String extension = getExtension(filePath.getFileName().toString());
+        String downloadName;
+        if (filename != null && !filename.isBlank()) {
+            String sanitized = sanitizeFilename(filename);
+            downloadName = sanitized.isEmpty() ? filePath.getFileName().toString() : sanitized + "." + extension;
+        } else {
+            downloadName = filePath.getFileName().toString();
+        }
+
+        String contentType = Files.probeContentType(filePath);
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
+
+        String asciiName = downloadName.replaceAll("[^\\x20-\\x7E]", "_");
         String encodedName = URLEncoder.encode(downloadName, StandardCharsets.UTF_8).replace("+", "%20");
 
         return ResponseEntity.ok()

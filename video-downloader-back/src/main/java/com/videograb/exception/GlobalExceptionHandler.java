@@ -48,6 +48,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleGeneric(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponseDto(500, "Une erreur inattendue s'est produite"));
+                .body(new ErrorResponseDto(500, "Une erreur inattendue est survenue. Réessayez plus tard."));
     }
 }

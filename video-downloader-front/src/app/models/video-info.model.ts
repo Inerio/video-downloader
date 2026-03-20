@@ -18,3 +18,14 @@ export interface VideoInfo {
   contentType: string;
   formats: VideoFormat[];
 }
+
+export interface DownloadProgress {
+  status: 'pending' | 'downloading' | 'merging' | 'complete' | 'error';
+  percent: number;
+  speed: string;
+  eta: string;
+  error: string | null;
+  downloadPass: number;
+  phase: string;
+  isMergeFormat: boolean;
+}
