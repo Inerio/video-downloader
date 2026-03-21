@@ -19,6 +19,7 @@ export interface VideoInfo {
   formats: VideoFormat[];
 }
 
+// Kept for future HD merge re-enablement (currently disabled — Cloudflare Tunnel TOS)
 export interface DownloadProgress {
   status: 'pending' | 'downloading' | 'merging' | 'complete' | 'error';
   percent: number;

@@ -7,7 +7,7 @@ cors:
 ytdlp:
   path: yt-dlp
   temp-dir: ${java.io.tmpdir}/videograb
-  timeout: 600
+  timeout: 120
   max-filesize: 500M
 
 spring:

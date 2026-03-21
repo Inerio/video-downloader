@@ -103,10 +103,13 @@ public class YtDlpService {
         Path tempDir = Path.of(config.getTempDir());
 
         try {
-            // Map "best" to bestvideo+bestaudio with fallback for HD quality
-            if ("best".equals(formatId)) {
-                formatId = "bestvideo+bestaudio/best";
-            }
+            // HD merge disabled — Cloudflare Tunnel TOS prohibits serving large video files.
+            // The merge feature (bestvideo+bestaudio) produces HD files that transit through
+            // Cloudflare's network, violating the CDN disproportionate-content policy.
+            // To re-enable: uncomment the remapping and --merge-output-format/--newline flags.
+            // if ("best".equals(formatId)) {
+            //     formatId = "bestvideo+bestaudio/best";
+            // }
 
             Files.createDirectories(tempDir);
             Path outputTemplate = tempDir.resolve(filename + ".%(ext)s");
@@ -118,9 +121,10 @@ public class YtDlpService {
             command.add("--max-filesize");
             command.add(config.getMaxFilesize());
             command.add("--no-playlist");
-            command.add("--merge-output-format");
-            command.add("mp4");
-            command.add("--newline");
+            // HD merge flags — disabled (see Cloudflare TOS note above)
+            // command.add("--merge-output-format");
+            // command.add("mp4");
+            // command.add("--newline");
 
             command.add("-o");
             command.add(outputTemplate.toString());
@@ -324,50 +328,40 @@ public class YtDlpService {
         // Detect content type
         String contentType = detectContentType(json, platform, url, rawFormats, durationSec);
 
-        // Build the final format list with merged options
+        // Build the final format list
         List<VideoFormatDto> formats = new ArrayList<>();
 
-        // 1. "best" meta-format (always first)
+        // 1. "best" meta-format (always first) — yt-dlp picks best natively combined format
         boolean bestHasAudio = !"gif".equals(contentType);
         formats.add(new VideoFormatDto("best", "Meilleure qualité", "mp4", null, null, bestHasAudio, true, "best"));
 
-        // 2. Generate merged formats for each available resolution (descending)
-        if (!videoHeights.isEmpty()) {
-            List<Integer> sortedHeights = new ArrayList<>(videoHeights);
-            sortedHeights.sort(Collections.reverseOrder());
+        // HD merge disabled — Cloudflare Tunnel TOS prohibits serving large merged video files.
+        // To re-enable merged HD formats, uncomment the block below:
+        // if (!videoHeights.isEmpty()) {
+        //     List<Integer> sortedHeights = new ArrayList<>(videoHeights);
+        //     sortedHeights.sort(Collections.reverseOrder());
+        //     Long bestAudioSize = rawFormats.stream()
+        //             .filter(f -> f.hasAudio() && !f.hasVideo())
+        //             .map(VideoFormatDto::filesize).filter(Objects::nonNull)
+        //             .max(Long::compareTo).orElse(null);
+        //     for (int h : sortedHeights) {
+        //         String label = h + "p";
+        //         String mergedFormatId = "bestvideo[height<=" + h + "]+bestaudio/best";
+        //         String res = (h * 16 / 9) + "x" + h;
+        //         Long estimatedSize = null;
+        //         Long videoSize = videoSizeByHeight.get(h);
+        //         if (videoSize != null && bestAudioSize != null) estimatedSize = videoSize + bestAudioSize;
+        //         else if (videoSize != null) estimatedSize = videoSize;
+        //         formats.add(new VideoFormatDto(mergedFormatId, label, "mp4", estimatedSize, res, true, true, label + " Video + Audio"));
+        //     }
+        // }
 
-            // Find best audio size for estimates
-            Long bestAudioSize = rawFormats.stream()
-                    .filter(f -> f.hasAudio() && !f.hasVideo())
-                    .map(VideoFormatDto::filesize)
-                    .filter(Objects::nonNull)
-                    .max(Long::compareTo)
-                    .orElse(null);
-
-            for (int h : sortedHeights) {
-                String label = h + "p";
-                String mergedFormatId = "bestvideo[height<=" + h + "]+bestaudio/best";
-                String res = (h * 16 / 9) + "x" + h; // approximate 16:9
-
-                // Estimate merged filesize (video + audio)
-                Long estimatedSize = null;
-                Long videoSize = videoSizeByHeight.get(h);
-                if (videoSize != null && bestAudioSize != null) {
-                    estimatedSize = videoSize + bestAudioSize;
-                } else if (videoSize != null) {
-                    estimatedSize = videoSize;
-                }
-
-                formats.add(new VideoFormatDto(mergedFormatId, label, "mp4", estimatedSize, res, true, true, label + " Video + Audio"));
-            }
-        }
-
-        // 3. Add natively combined formats (video + audio in one stream, e.g. TikTok, Twitter)
+        // 2. Add natively combined formats (video + audio in one stream, e.g. TikTok, Twitter)
         rawFormats.stream()
                 .filter(f -> f.hasAudio() && f.hasVideo())
                 .forEach(formats::add);
 
-        // 4. Add audio-only formats
+        // 3. Add audio-only formats
         rawFormats.stream()
                 .filter(f -> f.hasAudio() && !f.hasVideo())
                 .forEach(formats::add);

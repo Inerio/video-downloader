@@ -22,7 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Service
+// DISABLED — HD merge download feature deactivated (Cloudflare Tunnel TOS).
+// This service manages async download tasks with SSE progress streaming.
+// To re-enable: uncomment @Service, re-activate AsyncConfig, and restore
+// the async endpoints in VideoController.
+// @Service
 public class DownloadTaskService {
 
     private static final Logger log = LoggerFactory.getLogger(DownloadTaskService.class);
