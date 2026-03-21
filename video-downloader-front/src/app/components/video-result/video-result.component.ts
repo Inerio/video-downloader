@@ -1,17 +1,15 @@
 import { Component, Input, OnChanges, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { VideoInfo, DownloadProgress } from '../../models/video-info.model';
+import { VideoInfo } from '../../models/video-info.model';
 import { VideoService } from '../../services/video.service';
 import { PlatformBadgeComponent } from '../platform-badge/platform-badge.component';
 import { FormatSelectorComponent } from '../format-selector/format-selector.component';
 import { TranslationService } from '../../services/translation.service';
-import { DecimalPipe } from '@angular/common';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-video-result',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PlatformBadgeComponent, FormatSelectorComponent],
+  imports: [FormsModule, PlatformBadgeComponent, FormatSelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="result-card">
@@ -72,40 +70,22 @@ import { Subscription } from 'rxjs';
         [formats]="videoInfo.formats"
         [contentType]="videoInfo.contentType"
         (selectFormat)="onDownload($event)"
-        [disabled]="!!downloadProgress"
+        [disabled]="downloading"
       />
 
-      @if (downloadProgress) {
-        <div class="download-progress" role="status" [class.progress-error]="downloadProgress.status === 'error'">
+      @if (downloading) {
+        <div class="download-progress" role="status">
           <div class="progress-top">
             <span class="progress-format">{{ selectedFormatLabel }}</span>
-            @if (downloadProgress.status === 'downloading' && downloadProgress.speed) {
-              <span class="progress-meta">{{ downloadProgress.speed }} — ETA {{ downloadProgress.eta }}</span>
-            }
           </div>
           <div class="progress-header">
             <span class="progress-label">
-              @if (downloadProgress.status === 'merging') {
-                {{ t.t()('result.merging') }}
-              } @else if (downloadProgress.status === 'error') {
-                {{ downloadProgress.error || t.t()('app.error.analyze') }}
-              } @else if (downloadProgress.status === 'downloading') {
-                @if (downloadProgress.phase === 'audio') {
-                  {{ t.t()('result.downloading.audio') }}
-                } @else {
-                  {{ t.t()('result.downloading.video') }}
-                }
-              } @else {
-                <span class="spinner--sm"></span>
-                {{ t.t()('result.preparing') }}
-              }
+              <span class="spinner--sm"></span>
+              {{ t.t()('result.downloading') }}
             </span>
-            <span class="progress-percent">{{ unifiedPercent | number:'1.0-0' }}%</span>
           </div>
           <div class="progress-bar-track">
-            <div class="progress-bar-fill" [style.width.%]="unifiedPercent"
-                 [class.merging]="downloadProgress.status === 'merging'"
-                 [class.error]="downloadProgress.status === 'error'"></div>
+            <div class="progress-bar-fill indeterminate"></div>
           </div>
         </div>
       }
@@ -245,11 +225,6 @@ import { Subscription } from 'rxjs';
       border: 1px solid var(--border-default);
       border-radius: var(--radius-lg);
       animation: slideUp 0.3s ease;
-
-      &.progress-error {
-        border-color: var(--error-border);
-        background: var(--error-surface);
-      }
     }
 
     .progress-top {
@@ -263,12 +238,6 @@ import { Subscription } from 'rxjs';
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--accent-primary);
-    }
-
-    .progress-meta {
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      font-weight: 400;
     }
 
     .progress-header {
@@ -299,28 +268,16 @@ import { Subscription } from 'rxjs';
       height: 100%;
       background: var(--accent-primary);
       border-radius: 4px;
-      transition: width 0.4s ease;
 
-      &.merging {
-        background: var(--accent-surface);
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-
-      &.error {
-        background: var(--error-light);
+      &.indeterminate {
+        width: 40%;
+        animation: indeterminate 1.5s ease-in-out infinite;
       }
     }
 
-    .progress-percent {
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    @keyframes indeterminate {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
     }
 
     @media (max-width: 600px) {
@@ -335,18 +292,9 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
 
   filename = '';
   thumbnailError = false;
-  downloadProgress: DownloadProgress | null = null;
+  downloading = false;
   selectedFormatLabel = '';
   private downloadTimer: ReturnType<typeof setTimeout> | null = null;
-  private eventSource: EventSource | null = null;
-  private sseRetryCount = 0;
-  private startSub?: Subscription;
-
-  private static readonly MAX_SSE_RETRIES = 3;
-  private static readonly EMPTY_PROGRESS: DownloadProgress = {
-    status: 'error', percent: 0, speed: '', eta: '', error: '',
-    downloadPass: 0, phase: '', isMergeFormat: false
-  };
 
   constructor(
     private videoService: VideoService,
@@ -365,36 +313,6 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
     return totalSeconds > 600; // > 10 min
   }
 
-  /** Remap raw per-stream progress into a single continuous 0→100% bar */
-  get unifiedPercent(): number {
-    if (!this.downloadProgress) return 0;
-    const { status, percent, downloadPass, phase, isMergeFormat } = this.downloadProgress;
-    const safePercent = (typeof percent === 'number' && !isNaN(percent)) ? percent : 0;
-
-    if (status === 'complete') return 100;
-    if (status === 'error' || status === 'pending') return 0;
-
-    // Merge phase → 95%
-    if (status === 'merging' || phase === 'merge') return 95;
-
-    // Single-stream download (no merge needed): map 0→90% directly
-    if (!isMergeFormat) {
-      return Math.min(90, safePercent * 0.9);
-    }
-
-    // Dual-stream merge format
-    if (downloadPass === 0) {
-      // Video stream: 0→50%
-      return Math.min(50, safePercent * 0.5);
-    }
-    if (downloadPass === 1) {
-      // Audio stream: 50→90%
-      return Math.min(90, 50 + safePercent * 0.4);
-    }
-
-    return Math.min(100, 90);
-  }
-
   get contentTypeLabel(): string {
     switch (this.videoInfo?.contentType) {
       case 'gif': return 'GIF';
@@ -409,7 +327,7 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
     if (this.videoInfo) {
       this.filename = this.sanitizeFilename(this.videoInfo.title);
       this.thumbnailError = false;
-      this.cancelDownload();
+      this.downloading = false;
     }
   }
 
@@ -420,122 +338,29 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy() {
     if (this.downloadTimer) clearTimeout(this.downloadTimer);
-    this.cleanupEventSource();
-    this.startSub?.unsubscribe();
   }
 
   onDownload(formatId: string) {
-    // Allow re-download: cancel any active progress/timer
-    if (this.downloadProgress) {
-      this.cancelDownload();
-    }
-
     this.selectedFormatLabel = this.buildFormatLabel(formatId);
-    this.downloadProgress = {
-      status: 'pending', percent: 0, speed: '', eta: '', error: null,
-      downloadPass: 0, phase: '', isMergeFormat: formatId.includes('+')
-    };
-    this.cdr.markForCheck();
 
-    this.startSub?.unsubscribe();
-    this.startSub = this.videoService.startDownload(this.videoUrl, formatId).subscribe({
-      next: (res) => {
-        this.sseRetryCount = 0;
-        this.listenToProgress(res.taskId);
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        const msg = err?.error?.message || this.t.t()('app.error.analyze');
-        this.downloadProgress = { ...VideoResultComponent.EMPTY_PROGRESS, error: msg };
-        this.cdr.markForCheck();
-        this.resetProgressAfterDelay();
-      }
-    });
-  }
+    const downloadUrl = this.videoService.getDownloadUrl(this.videoUrl, formatId, this.filename);
 
-  private listenToProgress(taskId: string) {
-    this.cleanupEventSource();
-
-    const url = this.videoService.getProgressUrl(taskId);
-    this.eventSource = new EventSource(url);
-
-    this.eventSource.addEventListener('progress', (event: MessageEvent) => {
-      try {
-        const data: DownloadProgress = JSON.parse(event.data);
-        this.downloadProgress = data;
-        this.sseRetryCount = 0; // reset on successful message
-        this.cdr.markForCheck();
-
-        if (data.status === 'complete') {
-          this.cleanupEventSource();
-          this.triggerFileDownload(taskId);
-          this.resetProgressAfterDelay();
-        } else if (data.status === 'error') {
-          this.cleanupEventSource();
-          this.resetProgressAfterDelay();
-        }
-      } catch {
-        // Malformed JSON — ignore this event, wait for next
-      }
-    });
-
-    this.eventSource.onerror = () => {
-      // EventSource fires onerror on transient issues AND permanent failures
-      // Only treat as fatal if readyState is CLOSED or max retries exceeded
-      if (this.eventSource?.readyState === EventSource.CLOSED) {
-        this.sseRetryCount++;
-        this.cleanupEventSource();
-
-        if (this.sseRetryCount < VideoResultComponent.MAX_SSE_RETRIES
-            && this.downloadProgress?.status !== 'complete') {
-          // Retry after short delay
-          setTimeout(() => this.listenToProgress(taskId), 1000);
-        } else if (this.downloadProgress?.status !== 'complete') {
-          this.downloadProgress = {
-            ...VideoResultComponent.EMPTY_PROGRESS,
-            error: this.t.t()('app.error.analyze')
-          };
-          this.cdr.markForCheck();
-          this.resetProgressAfterDelay();
-        }
-      }
-      // If readyState is CONNECTING, the browser is auto-reconnecting — do nothing
-    };
-  }
-
-  private triggerFileDownload(taskId: string) {
-    const fileUrl = this.videoService.getTaskFileUrl(taskId, this.filename);
+    // Trigger browser download via hidden link
     const link = document.createElement('a');
-    link.href = fileUrl;
+    link.href = downloadUrl;
     link.download = this.filename || '';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }
 
-  private cancelDownload() {
-    if (this.downloadTimer) {
-      clearTimeout(this.downloadTimer);
-      this.downloadTimer = null;
-    }
-    this.cleanupEventSource();
-    this.startSub?.unsubscribe();
-    this.downloadProgress = null;
-  }
-
-  private resetProgressAfterDelay() {
+    // Show downloading indicator with progress bar
+    this.downloading = true;
+    this.cdr.markForCheck();
     if (this.downloadTimer) clearTimeout(this.downloadTimer);
     this.downloadTimer = setTimeout(() => {
-      this.downloadProgress = null;
+      this.downloading = false;
       this.cdr.markForCheck();
-    }, 4000);
-  }
-
-  private cleanupEventSource() {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-    }
+    }, 5000);
   }
 
   private buildFormatLabel(formatId: string): string {
@@ -549,8 +374,6 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
       else if (format.hasAudio) parts.push('Audio');
       return parts.join(' · ');
     }
-    const match = formatId.match(/height<=(\d+)/);
-    if (match) return `${match[1]}p · MP4 · Video + Audio`;
     if (formatId === 'best') return this.t.t()('format.download.best').replace('Télécharger — ', '').replace('Download — ', '');
     return formatId;
   }
@@ -565,3 +388,22 @@ export class VideoResultComponent implements OnChanges, OnDestroy {
       .substring(0, 200);
   }
 }
+
+// ==================================================================================
+// HD MERGE + SSE PROGRESS BAR — DISABLED (Cloudflare Tunnel TOS)
+//
+// The code below implements an async download system with real-time progress tracking
+// via Server-Sent Events (SSE). It was disabled because serving large merged HD video
+// files through Cloudflare Tunnel violates the free-tier CDN disproportionate-content
+// policy. To re-enable, restore the SSE flow in onDownload() and the DownloadProgress
+// interface usage.
+//
+// Key concepts:
+// - POST /api/video/download/start → taskId
+// - GET /api/video/download/{taskId}/progress → SSE stream with DownloadProgressDto
+// - GET /api/video/download/{taskId}/file → retrieve merged file
+// - Unified progress: single-stream 0→90%, dual-stream video 0→50% + audio 50→90%,
+//   merge 95%, complete 100%
+//
+// See also: DownloadTaskService.java, AsyncConfig.java, DownloadProgressDto.java
+// ==================================================================================

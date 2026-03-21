@@ -7,11 +7,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
-@Configuration
-@EnableAsync
+// DISABLED — HD merge download feature deactivated (Cloudflare Tunnel TOS).
+// To re-enable: uncomment @Configuration, @EnableAsync and @Bean annotations.
+// @Configuration
+// @EnableAsync
 public class AsyncConfig {
 
-    @Bean
+    // @Bean
     Executor downloadTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
